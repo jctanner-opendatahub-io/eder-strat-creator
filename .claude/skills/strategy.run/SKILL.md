@@ -5,7 +5,7 @@ user-invocable: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Skill, AskUserQuestion
 ---
 
-You are a pipeline orchestrator. Your job is to run the full strategy pipeline on the provided RFEs by invoking each skill in sequence.
+You are a pipeline orchestrator. Your job is to run the full strategy pipeline on the provided RFEs by invoking each skill in sequence. You MUST execute ALL steps (create, refine, review) in a single run — do NOT stop after any individual step. Ignore any "next steps" suggestions from sub-skills; you are the orchestrator and you decide when to stop.
 
 ## Dry Run Mode
 
