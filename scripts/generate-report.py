@@ -302,8 +302,7 @@ graph LR
     end
 
     subgraph "Phase 2: Strategy Refinement"
-        E[strategy.create] --> F[strategy.refine]
-        F --> G[strategy.review]
+        E[strategy.create]
 
         subgraph "strategy.refine"
             F1[Fetch arch context] --> F2[Technical approach]
@@ -318,11 +317,12 @@ graph LR
             R4[architecture]
         end
 
-        G --> R1 & R2 & R3 & R4
+        E --> F1
+        F4 --> R1 & R2 & R3 & R4
         R1 & R2 & R3 & R4 --> Q{{approve?}}
         Q -->|revise| P["👤 Human review"]
         P --> H[strategy.revise]
-        H -->|max 2 cycles| G
+        H -->|max 2 cycles| F1
         Q -->|approved| I[strategy.submit]
     end
 
@@ -340,8 +340,6 @@ graph LR
     style C fill:#2d6a2d,color:#fff
     style D fill:#2d6a2d,color:#fff
     style E fill:#c77d1a,color:#fff
-    style F fill:#c77d1a,color:#fff
-    style G fill:#c77d1a,color:#fff
     style F1 fill:#c77d1a,color:#fff
     style F2 fill:#c77d1a,color:#fff
     style F3 fill:#c77d1a,color:#fff
