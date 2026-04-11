@@ -88,7 +88,11 @@ For each RFE below, clone it in Jira to the RHAISTRAT project:
 After cloning, run `/strategy.refine` to add the technical strategy.
 ```
 
-## Step 4: Create Local Strategy Stubs
+## Step 4: Save Original RFE Snapshots
+
+For each RFE, save the raw fetched content to `artifacts/strat-originals/RHAIRFE-NNNN.md`. This is a frozen snapshot of the RFE at strategy creation time — it never gets modified. Write the full RFE content (summary, description, priority, labels, status) as-is.
+
+## Step 5: Create Local Strategy Stubs
 
 Regardless of whether Jira cloning succeeded, create stub files in `artifacts/strat-tasks/` for each strategy.
 
@@ -124,7 +128,7 @@ python3 scripts/frontmatter.py set artifacts/strat-tasks/<filename>.md \
 
 Use `jira_key=null` if Jira cloning was not done.
 
-## Step 5: Write Artifacts
+## Step 6: Write Artifacts
 
 If Jira cloning was done, write `artifacts/strat-tickets.md`:
 
@@ -136,7 +140,7 @@ If Jira cloning was done, write `artifacts/strat-tickets.md`:
 | RHAIRFE-NNNN | RHAISTRAT-NNNN | ... | Major | https://redhat.atlassian.net/browse/RHAISTRAT-NNNN |
 ```
 
-## Step 6: Next Steps
+## Step 7: Next Steps
 
 Tell the user:
 - Strategy stubs created in `artifacts/strat-tasks/`
