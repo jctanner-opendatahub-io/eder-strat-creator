@@ -26,7 +26,21 @@ strat-creator/
     └── strat-originals/  # Original RFE snapshots
 ```
 
+## Skills
+
+Skills are named `strategy.*` to avoid clashing with `strat.*` skills in rfe-creator.
+
+| Skill | Type | Description |
+|-------|------|-------------|
+| `strategy.create` | pipeline step | Creates strategy stubs from approved RFEs |
+| `strategy.refine` | pipeline step | Adds technical approach using architecture context |
+| `strategy.review` | pipeline step | Orchestrates 4 independent forked reviewers |
+| `strategy-feasibility-review` | forked reviewer | Technical viability and effort credibility |
+| `strategy-testability-review` | forked reviewer | Measurable criteria and edge cases |
+| `strategy-scope-review` | forked reviewer | Right-sizing and scope boundaries |
+| `strategy-architecture-review` | forked reviewer | Platform fit and dependency correctness |
+
 ## Related Projects
 
-- **rfe-creator** — Phase 1: RFE assessment pipeline (upstream)
+- **rfe-creator** — Phase 1: RFE assessment pipeline (upstream). Has `strat.*` skill stubs that these skills were forked from.
 - **strat-pipeline** (GitLab) — CI runner for this pipeline
