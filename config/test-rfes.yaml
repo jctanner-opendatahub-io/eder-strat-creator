@@ -1,29 +1,69 @@
 # Test RFEs for strat pipeline validation
 # Fill in IDs and comments explaining why each was chosen.
-# Ideal mix: 1-2 S, 2-3 M, 1 L/XL, at least 1 cross-component.
-# Requirements: approved, passing (score >=7, no zeros), council approved.
+# Ideal mix: varied sizes, at least 1 cross-component.
+# Requirements: 3.5 release, automated score >= 9 (rfe-creator tool).
 test_rfes:
-  - id: RHAIRFE-XXXX
-    size: S          # S, M, L, XL
-    comment: ""      # Why this one? What does it test?
-    cross_component: false
-
-  - id: RHAIRFE-XXXX
+  - id: RHAIRFE-1146
+    title: "Ability to hide default Workbench images"
     size: M
-    comment: ""
+    comment: "Baseline: 9/10, 2 strats linked. Components: AI Core Dashboard, Notebooks Images, UXD, Workbenches/IDE"
+    cross_component: true
+    baseline: true
+
+  - id: RHAIRFE-1547
+    title: "Add in ability to register/Deploy an external endpoint via Model Deployments Page"
+    size: M # S, M, L, XL
+    comment: "3.5 MaaS, Component already existent, Dashboard work. New Feature on Existing Technology, but needs to cover other use cases" # Why this one? What does it test?
     cross_component: false
 
-  - id: RHAIRFE-XXXX
+  - id: RHAIRFE-1469
+    title: "Production Llama Stack distribution should only include production-suitable providers"
     size: M
-    comment: ""
+    comment: "3.5 LLama Stack, Looks straighforward, but break dependencies (gen AI studio) and requires alternatives"
     cross_component: false
 
-  - id: RHAIRFE-XXXX
+  - id: RHAIRFE-1625
+    title: "Add Visual Status Badges to Learning Resource Tiles on the RHOAI Resources Page"
+    size: S
+    comment: "Dashboard straightforward"
+    cross_component: false
+
+  - id: RHAIRFE-1432
+    title: "Structured Output Enforcement for Auto Tool Calls"
+    size: M
+    comment: "Random pick, 3.5, vLLM Runtime component"
+    cross_component: false
+
+  - id: RHAIRFE-1479
+    title: "Add MLflow Integration for Experiment Tracking in AI Training Pipeline"
+    size: M
+    comment: "Random pick, 3.5, AI Pipelines / Fine Tuning / MLflow"
+    cross_component: true
+
+  - id: RHAIRFE-1429
+    title: "Tool call test and supported matrix"
+    size: M
+    comment: "Baseline: 9/10, 2 strats linked"
+    cross_component: false
+    baseline: true
+
+  - id: RHAIRFE-1431
+    title: "Rapid Tool-Calling Support for New Models"
+    size: M
+    comment: "Baseline: 9/10, 1 strat linked. Component: vLLM Runtime"
+    cross_component: false
+    baseline: true
+
+  - id: RHAIRFE-1661
+    title: "EvalHub Job Execution Log Access via HTTP API and CLI"
+    size: M
+    comment: "Baseline: 9/10, 1 strat linked. Component: Model Eval"
+    cross_component: false
+    baseline: true
+
+  - id: RHAIRFE-1506
+    title: "GA readiness for the Responses API"
     size: L
-    comment: ""
-    cross_component: true  # At least 1 should be true
-
-  - id: RHAIRFE-XXXX
-    size: M
-    comment: ""
-    cross_component: false
+    comment: "Baseline: 10/10, 1 strat linked. Components: AgentDev, Documentation, Llama Stack Core"
+    cross_component: true
+    baseline: true
