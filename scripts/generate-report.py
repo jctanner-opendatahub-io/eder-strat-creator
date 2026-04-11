@@ -253,8 +253,15 @@ tr.clickable {{ cursor: pointer; }}
 .expand-icon {{ color: #8b949e; transition: transform 0.2s; display: inline-block; margin-right: 8px; }}
 .expand-icon.open {{ transform: rotate(90deg); }}
 .footer {{ margin-top: 32px; padding-top: 16px; border-top: 1px solid #21262d; color: #484f58; font-size: 12px; }}
-.pipeline {{ background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 24px; margin-bottom: 24px; }}
+.pipeline {{ background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 24px; margin-bottom: 24px; position: relative; }}
 .pipeline h2 {{ color: #f0f6fc; font-size: 16px; margin-bottom: 16px; }}
+.pipeline .mermaid {{ cursor: grab; }}
+.pipeline .mermaid:active {{ cursor: grabbing; }}
+.zoom-controls {{ position: absolute; top: 16px; right: 16px; display: flex; gap: 4px; z-index: 10; }}
+.zoom-btn {{ background: #21262d; border: 1px solid #30363d; color: #c9d1d9; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; }}
+.zoom-btn:hover {{ background: #30363d; color: #f0f6fc; }}
+.diagram-container {{ overflow: hidden; position: relative; }}
+.diagram-inner {{ transform-origin: 0 0; transition: transform 0.1s ease; }}
 </style>
 </head>
 <body>
@@ -266,6 +273,13 @@ tr.clickable {{ cursor: pointer; }}
 
 <div class="pipeline">
     <h2>RHAI Agentic SDLC Pipeline</h2>
+    <div class="zoom-controls">
+        <button class="zoom-btn" onclick="zoomDiagram(1.2)" title="Zoom in">+</button>
+        <button class="zoom-btn" onclick="zoomDiagram(0.8)" title="Zoom out">&minus;</button>
+        <button class="zoom-btn" onclick="resetDiagram()" title="Reset">&#8634;</button>
+    </div>
+    <div class="diagram-container" id="diagram-container">
+    <div class="diagram-inner" id="diagram-inner">
     <pre class="mermaid">
 graph LR
     subgraph "Phase 1: RFE Assessment"
@@ -330,6 +344,8 @@ graph LR
     style L fill:#555,color:#fff
     style M fill:#555,color:#fff
     </pre>
+    </div>
+    </div>
 </div>
 
 <div class="stats">
@@ -432,6 +448,54 @@ function switchTab(i, tab) {{
     document.getElementById('tab-' + i + '-' + tab).classList.add('active');
     event.target.classList.add('active');
 }}
+</script>
+
+<script>
+let diagramScale = 1;
+let diagramX = 0, diagramY = 0;
+let isDragging = false, startX, startY;
+
+function zoomDiagram(factor) {{
+    diagramScale *= factor;
+    diagramScale = Math.max(0.3, Math.min(3, diagramScale));
+    updateDiagramTransform();
+}}
+
+function resetDiagram() {{
+    diagramScale = 1;
+    diagramX = 0;
+    diagramY = 0;
+    updateDiagramTransform();
+}}
+
+function updateDiagramTransform() {{
+    const inner = document.getElementById('diagram-inner');
+    inner.style.transform = `translate(${{diagramX}}px, ${{diagramY}}px) scale(${{diagramScale}})`;
+}}
+
+const container = document.getElementById('diagram-container');
+container.addEventListener('wheel', (e) => {{
+    e.preventDefault();
+    zoomDiagram(e.deltaY < 0 ? 1.1 : 0.9);
+}}, {{ passive: false }});
+
+container.addEventListener('mousedown', (e) => {{
+    isDragging = true;
+    startX = e.clientX - diagramX;
+    startY = e.clientY - diagramY;
+}});
+
+document.addEventListener('mousemove', (e) => {{
+    if (!isDragging) return;
+    diagramX = e.clientX - startX;
+    diagramY = e.clientY - startY;
+    const inner = document.getElementById('diagram-inner');
+    inner.style.transition = 'none';
+    updateDiagramTransform();
+    inner.style.transition = 'transform 0.1s ease';
+}});
+
+document.addEventListener('mouseup', () => {{ isDragging = false; }});
 </script>
 
 <script type="module">
