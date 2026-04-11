@@ -2,92 +2,17 @@
 
 Strategy refinement pipeline for RHAI (Red Hat AI) features. Takes approved RFEs from the RFE assessment pipeline and produces structured strategy documents ready for development planning.
 
-## Pipeline Overview
+## What This Does
 
-```mermaid
-graph LR
-    subgraph "Phase 1: RFE Assessment"
-        A[rfe.create] --> B[rfe.review]
-        B --> C[rfe.auto-fix]
-        C --> D[rfe.submit]
-    end
+Given an approved RFE (from the `rfe-creator` pipeline), this pipeline:
 
-    subgraph "Phase 2: Strategy Refinement"
-        E[strategy.create]
+1. **Creates** a strategy stub from the RFE data (`strategy.create`)
+2. **Refines** the stub into a structured strategy using architecture context (`strategy.refine`)
+3. **Reviews** the strategy across 4 dimensions — feasibility, testability, scope, architecture (`strategy.review`)
+4. **Revises** based on review feedback with human-in-the-loop (planned)
+5. **Submits** the final strategy to Jira as a RHAISTRAT issue (planned)
 
-        subgraph "strategy.refine"
-            F1[Fetch arch context] --> F2[Technical approach]
-            F2 --> F3[Dependencies & components]
-            F3 --> F4[Effort estimate & risks]
-        end
-
-        subgraph "strategy.review (4 parallel reviewers)"
-            R1[feasibility]
-            R2[testability]
-            R3[scope]
-            R4[architecture]
-        end
-
-        E --> F1
-        F4 --> R1 & R2 & R3 & R4
-        R1 & R2 & R3 & R4 --> Q{approve?}
-        Q -->|revise| P["👤 Human review"]
-        P --> H[strategy.revise]
-        H -->|max 2 cycles| F1
-        Q -->|approved| I[strategy.submit]
-    end
-
-    subgraph "Phase 3: Feature Dev"
-        J[Feature Ready] --> K[Prioritize]
-        K --> L[AI-Assisted Dev]
-        L --> M[PR Review]
-    end
-
-    D -->|"PM adds strat-ready label"| E
-    I -->|"strategy ready"| J
-
-    style A fill:#2d6a2d,color:#fff
-    style B fill:#2d6a2d,color:#fff
-    style C fill:#2d6a2d,color:#fff
-    style D fill:#2d6a2d,color:#fff
-    style E fill:#c77d1a,color:#fff
-    style F1 fill:#c77d1a,color:#fff
-    style F2 fill:#c77d1a,color:#fff
-    style F3 fill:#c77d1a,color:#fff
-    style F4 fill:#c77d1a,color:#fff
-    style R1 fill:#c77d1a,color:#fff
-    style R2 fill:#c77d1a,color:#fff
-    style R3 fill:#c77d1a,color:#fff
-    style R4 fill:#c77d1a,color:#fff
-    style P fill:#3d1f00,color:#f0883e,stroke:#f0883e
-    style Q fill:#1f3a5f,color:#58a6ff,stroke:#58a6ff
-    style H fill:#555,color:#fff
-    style I fill:#555,color:#fff
-    style J fill:#555,color:#fff
-    style K fill:#555,color:#fff
-    style L fill:#555,color:#fff
-    style M fill:#555,color:#fff
-```
-
-**Legend:** Green = implemented (rfe-creator) | Orange = implemented (strat-creator) | Gray = not started
-
-Each pipeline step runs in its own Claude session with a fresh context window (per [Lesson 1: The Agent Forgets Mid-Run](../wiki/05-lessons-and-patterns.md#1-the-agent-forgets-mid-run)). Artifacts on disk are the handoff between steps. All external writes go through deterministic scripts with `--dry-run` support (per [Lesson 4](../wiki/05-lessons-and-patterns.md#4-every-side-effect-must-be-a-deterministic-script)).
-
-### Running the Pipeline
-
-```bash
-# Session 1: Create strategy stubs from RFEs
-/strategy.create config/test-rfes.yaml --dry-run
-
-# Session 2: Refine — add technical approach, dependencies, components
-/strategy.refine --dry-run
-
-# Session 3: Review — 4 independent adversarial reviewers
-/strategy.review --dry-run
-
-# Generate HTML report (no LLM needed)
-python3 scripts/generate-report.py
-```
+Each step runs in its own Claude session. Artifacts on disk are the handoff between steps.
 
 ## Implementation Status
 
