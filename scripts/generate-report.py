@@ -259,15 +259,15 @@ tr.clickable {{ cursor: pointer; }}
 .nav-tab.active {{ color: #f0f6fc; border-bottom-color: #f78166; }}
 .nav-page {{ display: none; }}
 .nav-page.active {{ display: block; }}
-.pipeline {{ background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 24px; margin-bottom: 24px; position: relative; }}
-.pipeline h2 {{ color: #f0f6fc; font-size: 16px; margin-bottom: 16px; }}
+.pipeline {{ background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 24px; position: relative; height: calc(100vh - 180px); display: flex; flex-direction: column; }}
+.pipeline h2 {{ color: #f0f6fc; font-size: 16px; margin-bottom: 16px; flex-shrink: 0; }}
 .pipeline .mermaid {{ cursor: grab; }}
 .pipeline .mermaid:active {{ cursor: grabbing; }}
 .zoom-controls {{ position: absolute; top: 16px; right: 16px; display: flex; gap: 4px; z-index: 10; }}
 .zoom-btn {{ background: #21262d; border: 1px solid #30363d; color: #c9d1d9; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; }}
 .zoom-btn:hover {{ background: #30363d; color: #f0f6fc; }}
-.diagram-container {{ overflow: hidden; position: relative; }}
-.diagram-inner {{ transform-origin: 0 0; transition: transform 0.1s ease; }}
+.diagram-container {{ overflow: hidden; position: relative; flex: 1; }}
+.diagram-inner {{ transform-origin: 0 0; transition: transform 0.1s ease; height: 100%; display: flex; align-items: center; justify-content: center; }}
 </style>
 </head>
 <body>
