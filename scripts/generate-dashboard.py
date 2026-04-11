@@ -233,6 +233,11 @@ def extract_run_stats(run_dir, config):
     weakest_dim = min(dimensions, key=lambda d: dim_stats[d]["rate"])
     strongest_dim = max(dimensions, key=lambda d: dim_stats[d]["rate"])
 
+    # First-pass quality score: % of all dimension checks that pass
+    total_checks = sum(dim_stats[d]["total"] for d in dimensions)
+    total_passes = sum(dim_stats[d]["approve"] for d in dimensions)
+    quality_score = pct(total_passes, total_checks)
+
     return {
         "total": total,
         "reviewed": total_reviewed,
@@ -240,6 +245,7 @@ def extract_run_stats(run_dir, config):
         "revise": revise,
         "approval_rate": pct(approved, total_reviewed),
         "revision_rate": pct(revise, total_reviewed),
+        "quality_score": quality_score,
         "dimensions": dim_stats,
         "weakest_dim": weakest_dim,
         "weakest_rate": dim_stats[weakest_dim]["rate"],
@@ -290,7 +296,10 @@ def scan_all_runs(data_dir, config, max_runs=30):
 
 def compute_deltas(runs):
     """Add delta fields comparing each run to its predecessor."""
+    cumulative = 0
     for i, run in enumerate(runs):
+        cumulative += run["reviewed"]
+        run["cumulative_reviewed"] = cumulative
         if i == 0:
             run["delta_approval"] = None
             run["delta_revision"] = None
@@ -302,10 +311,25 @@ def compute_deltas(runs):
 
 # ─── HTML generation ──────────────────────────────────────────────────────────
 
+def _delta_html(current, prev, field, is_pct=True):
+    """Render a delta comparison vs previous run. Green if +, red if -."""
+    if not current or not prev:
+        return '<span style="color:#6e7681">first run</span>' if current else ''
+    delta = current[field] - prev[field]
+    if delta == 0:
+        suffix = '%' if is_pct else ''
+        return f'<span style="color:#6e7681">0{suffix} vs prev</span>'
+    color = '#3fb950' if delta > 0 else '#f85149'
+    sign = '+' if delta > 0 else ''
+    suffix = '%' if is_pct else ''
+    return f'<span style="color:{color}">{sign}{delta}{suffix} vs prev</span>'
+
+
 def generate_dashboard(runs, output_path):
     """Generate the full dashboard HTML."""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
     current = runs[-1] if runs else None
+    prev = runs[-2] if len(runs) >= 2 else None
 
     # Prepare JSON data (strip strategy HTML bodies for overview; keep for detail)
     runs_json = json.dumps(runs, indent=None)
@@ -336,7 +360,7 @@ def generate_dashboard(runs, output_path):
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Strategy Pipeline Dashboard</title>
+<title>AgenticCI — Strat Refinement & Review Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <style>
 * {{ margin: 0; padding: 0; box-sizing: border-box; }}
@@ -468,7 +492,7 @@ tr.clickable {{ cursor: pointer; }}
 <body>
 
 <div class="header">
-    <h1>Strategy Pipeline Dashboard</h1>
+    <h1>AgenticCI — AI First — Strat Refinement & Review Dashboard</h1>
     <div class="subtitle">Generated {timestamp} | {len(runs)} run(s) tracked</div>
 </div>
 
@@ -477,10 +501,11 @@ tr.clickable {{ cursor: pointer; }}
     <div style="font-size:13px;color:#8b949e">
         This dashboard reflects <strong style="color:#c9d1d9">early pipeline scaffolding</strong>, not production-grade strategy assessments.
         We are validating the end-to-end pipeline infrastructure: Jira ingestion, strategy creation, multi-reviewer orchestration, artifact storage, and automated reporting.
+        All runs are <strong style="color:#c9d1d9">dry runs</strong> — no data is written to Jira; the pipeline only reads from RHAIRFE and writes artifacts locally.
         The four review dimensions (feasibility, testability, scope, architecture) are running with <strong style="color:#c9d1d9">baseline prompts</strong> that have not yet been calibrated against a scoring rubric or tuned with real-world examples.
-        <br><br>
+        <br>
         <strong style="color:#c9d1d9">What to expect next:</strong> calibrated rubrics with scored examples, evidence-based review gates (every finding must cite specific strategy text), additional review dimensions (security, API readiness), and revision cycles with convergence guardrails. Approval rates will shift materially as reviewer skills are fine-tuned.
-        <br><br>
+        <br>
         <span style="color:#6e7681">The goal of this phase is to prove the machinery works and begin collecting data. The goal of the next phase is to make the output trustworthy.</span>
     </div>
 </div>
@@ -504,22 +529,22 @@ tr.clickable {{ cursor: pointer; }}
     <div class="kpi">
         <div class="kpi-value" style="color:#58a6ff">{len(runs)}</div>
         <div class="kpi-label">Pipeline Runs</div>
-        <div class="kpi-detail">Latest: {current["label"] if current else "—"}</div>
+        <div class="kpi-detail">{current["cumulative_reviewed"] if current else 0} strategies total</div>
     </div>
     <div class="kpi">
         <div class="kpi-value" style="color:#f0f6fc">{current["reviewed"] if current else 0}</div>
         <div class="kpi-label">Strategies Reviewed</div>
-        <div class="kpi-detail">{current["total"] if current else 0} total</div>
+        <div class="kpi-detail">{_delta_html(current, prev, "reviewed", is_pct=False)}</div>
     </div>
     <div class="kpi">
         <div class="kpi-value" style="color:{health_color(current["approval_rate"]) if current else '#8b949e'}">{current["approval_rate"] if current else 0}%</div>
         <div class="kpi-label">Approval Rate</div>
-        <div class="kpi-detail">{current["approved"] if current else 0} approved</div>
+        <div class="kpi-detail">{_delta_html(current, prev, "approval_rate")}</div>
     </div>
     <div class="kpi">
         <div class="kpi-value" style="color:{health_color(100 - current["revision_rate"]) if current else '#8b949e'}">{current["revision_rate"] if current else 0}%</div>
         <div class="kpi-label">Revision Rate</div>
-        <div class="kpi-detail">{current["revise"] if current else 0} need rework</div>
+        <div class="kpi-detail">{_delta_html(current, prev, "revision_rate")}</div>
     </div>
     <div class="kpi">
         <div class="kpi-value" style="color:{health_color(current["weakest_rate"]) if current else '#8b949e'}">{current["weakest_rate"] if current else 0}%</div>
@@ -537,10 +562,15 @@ tr.clickable {{ cursor: pointer; }}
         <h3>Strategies Per Run</h3>
         <canvas id="chart-volume"></canvas>
     </div>
-    <div class="chart-card full-width">
+    <div class="chart-card">
         <h3>Review Dimensions Over Time</h3>
-        <p style="color:#6e7681;font-size:12px;margin-bottom:8px">Approval rate per reviewer dimension across runs. Identifies which dimension is the bottleneck and whether it's improving.</p>
+        <p style="color:#6e7681;font-size:12px;margin-bottom:8px">Per-dimension approval rate. Shows which dimension is the bottleneck.</p>
         <canvas id="chart-dimensions"></canvas>
+    </div>
+    <div class="chart-card">
+        <h3>First-Pass Quality Score</h3>
+        <p style="color:#6e7681;font-size:12px;margin-bottom:8px">% of all dimension checks (feasibility, testability, scope, architecture) that pass per run.</p>
+        <canvas id="chart-quality"></canvas>
     </div>
 </div>
 
@@ -966,6 +996,39 @@ function initCharts() {{
             responsive: true,
             plugins: {{
                 legend: {{ position: 'bottom', labels: {{ boxWidth: 12 }} }},
+            }},
+            scales: {{
+                y: {{
+                    min: 0, max: 100,
+                    ticks: {{ callback: v => v + '%' }},
+                    grid: {{ color: '#161b22' }},
+                }},
+                x: {{ grid: {{ display: false }} }},
+            }},
+        }},
+    }});
+
+    // First-pass quality score
+    new Chart(document.getElementById('chart-quality'), {{
+        type: 'line',
+        data: {{
+            labels,
+            datasets: [{{
+                label: 'Quality Score %',
+                data: RUNS.map(r => r.quality_score),
+                borderColor: '#a371f7',
+                backgroundColor: 'rgba(163,113,247,0.1)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 6,
+                pointHoverRadius: 8,
+                pointBackgroundColor: '#a371f7',
+            }}]
+        }},
+        options: {{
+            responsive: true,
+            plugins: {{
+                legend: {{ display: false }},
             }},
             scales: {{
                 y: {{
