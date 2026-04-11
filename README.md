@@ -43,7 +43,7 @@ graph LR
         L --> M[PR Review]
     end
 
-    D -->|"approved RFEs\n(score ≥9)"| E
+    D -->|"PM adds strat-ready label"| E
     I -->|"strategy ready"| J
 
     style A fill:#2d6a2d,color:#fff
