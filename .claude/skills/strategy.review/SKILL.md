@@ -28,7 +28,16 @@ bash scripts/fetch-architecture-context.sh
 
 ## Step 3: Run Reviews
 
-Invoke these forked reviewer skills in parallel. Each runs in its own isolated context — no reviewer sees another's output.
+Use the **Skill tool** to invoke each of these reviewer skills in parallel. Call all four via the Skill tool simultaneously — each runs in its own isolated context and no reviewer sees another's output.
+
+```
+Skill(skill="strategy-feasibility-review")
+Skill(skill="strategy-testability-review")
+Skill(skill="strategy-scope-review")
+Skill(skill="strategy-architecture-review")
+```
+
+Do NOT use the Agent tool for reviews. Use the Skill tool — the reviewer skills are defined in `.claude/skills/` and contain specific review instructions.
 
 - **`strategy-feasibility-review`**: Can we build this with the proposed approach? Are effort estimates credible?
 - **`strategy-testability-review`**: Are acceptance criteria testable? What edge cases are missing?
