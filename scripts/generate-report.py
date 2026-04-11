@@ -277,9 +277,25 @@ graph LR
     subgraph "Phase 2: Strategy Refinement"
         E[strategy.create] --> F[strategy.refine]
         F --> G[strategy.review]
-        G -->|revise| H[strategy.revise]
+
+        subgraph "strategy.refine"
+            F1[Fetch arch context] --> F2[Technical approach]
+            F2 --> F3[Dependencies & components]
+            F3 --> F4[Effort estimate & risks]
+        end
+
+        subgraph "strategy.review (4 parallel reviewers)"
+            R1[feasibility]
+            R2[testability]
+            R3[scope]
+            R4[architecture]
+        end
+
+        G --> R1 & R2 & R3 & R4
+        R1 & R2 & R3 & R4 --> Q{{approve?}}
+        Q -->|revise| H[strategy.revise]
         H -->|max 2 cycles| G
-        G -->|submit| I[strategy.submit]
+        Q -->|approved| I[strategy.submit]
     end
 
     subgraph "Phase 3: Feature Dev"
@@ -298,6 +314,15 @@ graph LR
     style E fill:#c77d1a,color:#fff
     style F fill:#c77d1a,color:#fff
     style G fill:#c77d1a,color:#fff
+    style F1 fill:#c77d1a,color:#fff
+    style F2 fill:#c77d1a,color:#fff
+    style F3 fill:#c77d1a,color:#fff
+    style F4 fill:#c77d1a,color:#fff
+    style R1 fill:#c77d1a,color:#fff
+    style R2 fill:#c77d1a,color:#fff
+    style R3 fill:#c77d1a,color:#fff
+    style R4 fill:#c77d1a,color:#fff
+    style Q fill:#1f3a5f,color:#58a6ff,stroke:#58a6ff
     style H fill:#555,color:#fff
     style I fill:#555,color:#fff
     style J fill:#555,color:#fff
