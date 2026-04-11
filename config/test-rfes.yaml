@@ -1,0 +1,29 @@
+# Test RFEs for strat pipeline validation
+# Fill in IDs and comments explaining why each was chosen.
+# Ideal mix: 1-2 S, 2-3 M, 1 L/XL, at least 1 cross-component.
+# Requirements: approved, passing (score >=7, no zeros), council approved.
+test_rfes:
+  - id: RHAIRFE-XXXX
+    size: S          # S, M, L, XL
+    comment: ""      # Why this one? What does it test?
+    cross_component: false
+
+  - id: RHAIRFE-XXXX
+    size: M
+    comment: ""
+    cross_component: false
+
+  - id: RHAIRFE-XXXX
+    size: M
+    comment: ""
+    cross_component: false
+
+  - id: RHAIRFE-XXXX
+    size: L
+    comment: ""
+    cross_component: true  # At least 1 should be true
+
+  - id: RHAIRFE-XXXX
+    size: M
+    comment: ""
+    cross_component: false
