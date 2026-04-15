@@ -193,6 +193,7 @@ def extract_run_stats(run_dir, config):
         source_rfe = meta.get("source_rfe", "")
         cfg = config.get(source_rfe, {})
 
+        scores = rev_meta.get("scores", {})
         strategies.append({
             "strat_id": strat_id,
             "title": meta.get("title", ""),
@@ -202,10 +203,18 @@ def extract_run_stats(run_dir, config):
             "baseline": cfg.get("baseline", False),
             "cross_component": cfg.get("cross_component", False),
             "recommendation": rev_meta.get("recommendation", "—"),
+            "needs_attention": rev_meta.get("needs_attention", False),
             "feasibility": reviewers.get("feasibility", "—"),
             "testability": reviewers.get("testability", "—"),
             "scope": reviewers.get("scope", "—"),
             "architecture": reviewers.get("architecture", "—"),
+            "scores": {
+                "feasibility": scores.get("feasibility"),
+                "testability": scores.get("testability"),
+                "scope": scores.get("scope"),
+                "architecture": scores.get("architecture"),
+                "total": scores.get("total"),
+            } if scores else None,
             "strategy_html": md_to_html(task.get("body", "")),
             "review_html": md_to_html(review.get("body", "")),
             "labels": compute_strat_labels(
@@ -243,14 +252,34 @@ def extract_run_stats(run_dir, config):
     total_passes = sum(dim_stats[d]["approve"] for d in dimensions)
     quality_score = pct(total_passes, total_checks)
 
+    # Numeric score aggregates (when scores are available)
+    scored = [s for s in strategies if s.get("scores") and s["scores"].get("total") is not None]
+    has_scores = len(scored) > 0
+    avg_total_score = round(sum(s["scores"]["total"] for s in scored) / len(scored), 1) if scored else None
+    dim_avg_scores = {}
+    for dim in dimensions:
+        vals = [s["scores"][dim] for s in scored if s["scores"].get(dim) is not None]
+        dim_avg_scores[dim] = round(sum(vals) / len(vals), 2) if vals else None
+
+    # Verdict distribution (4-way)
+    split_count = sum(1 for s in reviewed if s["recommendation"] == "split")
+    reject_count = sum(1 for s in reviewed if is_reject(s["recommendation"]))
+    needs_attention = sum(1 for s in reviewed if s.get("needs_attention", False))
+
     return {
         "total": total,
         "reviewed": total_reviewed,
         "approved": approved,
         "revise": revise,
+        "split": split_count,
+        "reject": reject_count,
+        "needs_attention": needs_attention,
         "approval_rate": pct(approved, total_reviewed),
         "revision_rate": pct(revise, total_reviewed),
         "quality_score": quality_score,
+        "has_scores": has_scores,
+        "avg_total_score": avg_total_score,
+        "dim_avg_scores": dim_avg_scores,
         "dimensions": dim_stats,
         "weakest_dim": weakest_dim,
         "weakest_rate": dim_stats[weakest_dim]["rate"],
@@ -437,7 +466,7 @@ body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans
 .grid-header-verdict {{ width: 72px; text-align: right; font-size: 11px; color: #6e7681; text-transform: uppercase; }}
 .grid-row {{ display: flex; align-items: center; gap: 4px; padding: 4px 0; }}
 .grid-id {{ width: 90px; font-size: 13px; color: #c9d1d9; font-weight: 500; }}
-.grid-cell {{ width: 40px; height: 24px; border-radius: 4px; border: 2px solid; }}
+.grid-cell {{ width: 40px; height: 24px; border-radius: 4px; border: 2px solid; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; }}
 .grid-verdict {{ width: 72px; text-align: right; font-size: 12px; font-weight: 600; }}
 
 /* Two column */
@@ -515,16 +544,17 @@ tr.clickable {{ cursor: pointer; }}
 </div>
 
 <div style="background:#1c1f26;border:1px solid #30363d;border-left:4px solid #58a6ff;border-radius:8px;padding:20px 24px;margin-bottom:24px;line-height:1.7">
-    <div style="font-size:15px;font-weight:600;color:#58a6ff;margin-bottom:8px">Infrastructure Validation Phase</div>
+    <div style="font-size:15px;font-weight:600;color:#58a6ff;margin-bottom:8px">Scored Review Pipeline</div>
     <div style="font-size:13px;color:#8b949e">
-        This dashboard reflects <strong style="color:#c9d1d9">early pipeline scaffolding</strong>, not production-grade strategy assessments.
-        We are validating the end-to-end pipeline infrastructure: Jira ingestion, strategy creation, multi-reviewer orchestration, artifact storage, and automated reporting.
-        All runs are <strong style="color:#c9d1d9">dry runs</strong> — no data is written to Jira; the pipeline only reads from RHAIRFE and writes artifacts locally.
-        The four review dimensions (feasibility, testability, scope, architecture) are running with <strong style="color:#c9d1d9">baseline prompts</strong> that have not yet been calibrated against a scoring rubric or tuned with real-world examples.
+        Strategies are scored on <strong style="color:#c9d1d9">four dimensions</strong> (Feasibility, Testability, Scope, Architecture) using a <strong style="color:#c9d1d9">calibrated rubric</strong> with 12 examples from real pipeline output.
+        Each dimension is scored 0–2. Total: 8 points. Verdicts are <strong style="color:#c9d1d9">deterministic</strong> — computed from scores by code, not LLM judgment.
         <br>
-        <strong style="color:#c9d1d9">What to expect next:</strong> calibrated rubrics with scored examples, evidence-based review gates (every finding must cite specific strategy text), additional review dimensions (security, API readiness), and revision cycles with convergence guardrails. Approval rates will shift materially as reviewer skills are fine-tuned.
+        <strong style="color:#c9d1d9">Verdict rules:</strong> APPROVE (≥6, no zeros) auto-passes. REVISE, SPLIT, and REJECT get <code style="background:#21262d;padding:2px 6px;border-radius:3px">needs-attention</code> for human review.
+        All runs are <strong style="color:#c9d1d9">dry runs</strong> — no data is written to Jira.
         <br>
-        <span style="color:#6e7681">The goal of this phase is to prove the machinery works and begin collecting data. The goal of the next phase is to make the output trustworthy.</span>
+        <strong style="color:#c9d1d9">What to expect next:</strong> evidence-based review gates (every finding must cite specific strategy text), additional review dimensions (security, API readiness), and Jira write-back.
+        <br>
+        <span style="color:#6e7681">The binary gate is intentional: only APPROVE passes automatically. Everything else requires human review.</span>
     </div>
 </div>
 
@@ -543,7 +573,7 @@ tr.clickable {{ cursor: pointer; }}
     <div class="hero-sub">{len(runs)} pipeline run(s) | Latest: {current["label"] if current else "none"}</div>
 </div>
 
-<div class="kpi-grid" style="grid-template-columns: repeat(5, 1fr);">
+<div class="kpi-grid" style="grid-template-columns: repeat(6, 1fr);">
     <div class="kpi">
         <div class="kpi-value" style="color:#58a6ff">{len(runs)}</div>
         <div class="kpi-label">Pipeline Runs</div>
@@ -560,9 +590,14 @@ tr.clickable {{ cursor: pointer; }}
         <div class="kpi-detail">{_delta_html(current, prev, "approval_rate")}</div>
     </div>
     <div class="kpi">
-        <div class="kpi-value" style="color:{health_color(100 - current["revision_rate"]) if current else '#8b949e'}">{current["revision_rate"] if current else 0}%</div>
-        <div class="kpi-label">Revision Rate</div>
-        <div class="kpi-detail">{_delta_html(current, prev, "revision_rate")}</div>
+        <div class="kpi-value" style="color:{health_color(int(current["avg_total_score"] / 8 * 100) if current and current.get("avg_total_score") else 0) if current else '#8b949e'}">{current["avg_total_score"] if current and current.get("avg_total_score") is not None else "—"}<span style="font-size:16px;color:#6e7681">/8</span></div>
+        <div class="kpi-label">Avg Score</div>
+        <div class="kpi-detail">{"Rubric: F+T+S+A (0-2 each)" if current and current.get("has_scores") else "Scoring not yet enabled"}</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-value" style="color:#f85149">{current["needs_attention"] if current else 0}</div>
+        <div class="kpi-label">Needs Attention</div>
+        <div class="kpi-detail">{"Human review required" if current and current.get("needs_attention", 0) > 0 else "All clear"}</div>
     </div>
     <div class="kpi">
         <div class="kpi-value" style="color:{health_color(current["weakest_rate"]) if current else '#8b949e'}">{current["weakest_rate"] if current else 0}%</div>
@@ -589,6 +624,11 @@ tr.clickable {{ cursor: pointer; }}
         <h3>First-Pass Quality Score</h3>
         <p style="color:#6e7681;font-size:12px;margin-bottom:8px">% of all dimension checks (feasibility, testability, scope, architecture) that pass per run.</p>
         <canvas id="chart-quality"></canvas>
+    </div>
+    <div class="chart-card">
+        <h3>Average Score Trend</h3>
+        <p style="color:#6e7681;font-size:12px;margin-bottom:8px">Mean total score per run (0-8). Threshold for approval: 6/8.</p>
+        <canvas id="chart-avg-score"></canvas>
     </div>
 </div>
 
@@ -641,22 +681,23 @@ graph LR
         E -->|"+strat-creator-auto-created\\n+strat-creator-draft"| F1
         F4 -->|"+strat-creator-auto-refined\\ndraft &#8594; strat-creator-refined"| G{{{{refined}}}}
 
-        subgraph SV["strategy.review (4 parallel)"]
-            R1[feasibility]
-            R2[testability]
-            R3[scope]
-            R4[architecture]
-            R5[other subtasks]
+        subgraph SV["strategy.review"]
+            SC[Score: F/T/S/A\\n0-2 each] --> CON[Consolidate\\nscores + prose]
+            subgraph RV["4 parallel reviewers"]
+                R1[feasibility]
+                R2[testability]
+                R3[scope]
+                R4[architecture]
+            end
+            R1 & R2 & R3 & R4 --> CON
         end
 
-        G --> R1 & R2 & R3 & R4 & R5
-        R1 & R2 & R3 & R4 & R5 --> CON[Consolidate\\nreviews]
-        CON --> Q{{{{approve?}}}}
-        Q -->|"+strat-creator-approved\\n+strat-creator-review-pass"| I[strategy.submit]
+        G --> SC & R1 & R2 & R3 & R4
+        CON --> Q{{{{&#8805;6/8\\nno zeros?}}}}
+        Q -->|"APPROVE\\n+approved +review-pass"| I[strategy.submit]
         I --> KO["Kick off Phase 3"]
-        Q -->|"+strat-creator-reviewed\\n+strat-creator-revision-pending"| P["Human review"]
-        P --> H[strategy.revise]
-        H -->|"max 2 cycles\\n+strat-creator-auto-revised\\n-strat-creator-reviewed\\n-strat-creator-revision-pending"| F1
+        Q -->|"REVISE / SPLIT / REJECT\\n+needs-attention"| P["Human review"]
+        P -->|"Human fixes &\\nremoves needs-attention"| G
     end
 
     KO -->|"PM adds\\nstrat-prioritized label"| FR
@@ -677,16 +718,15 @@ graph LR
     style F2 fill:#c77d1a,color:#fff
     style F3 fill:#c77d1a,color:#fff
     style F4 fill:#c77d1a,color:#fff
+    style SC fill:#c77d1a,color:#fff
     style R1 fill:#c77d1a,color:#fff
     style R2 fill:#c77d1a,color:#fff
     style R3 fill:#c77d1a,color:#fff
     style R4 fill:#c77d1a,color:#fff
-    style R5 fill:#21262d,color:#8b949e,stroke:#30363d,stroke-dasharray: 5 5
     style CON fill:#c77d1a,color:#fff
     style G fill:#1f3a5f,color:#58a6ff,stroke:#58a6ff
     style Q fill:#1f3a5f,color:#58a6ff,stroke:#58a6ff
     style P fill:#3d1f00,color:#f0883e,stroke:#f0883e
-    style H fill:#555,color:#fff
     style I fill:#555,color:#fff
     style KO fill:#1f6feb,color:#fff,stroke:#58a6ff
     style FR fill:#555,color:#fff
@@ -708,11 +748,10 @@ graph LR
     <tr><td><span class="label-badge label-provenance">strat-creator-auto-revised</span></td><td>Provenance</td><td>strategy.revise modifies content after review feedback</td></tr>
     <tr><td><span class="label-badge label-stage">strat-creator-draft</span></td><td>Stage</td><td>Strategy stub exists, awaiting refinement</td></tr>
     <tr><td><span class="label-badge label-stage">strat-creator-refined</span></td><td>Stage</td><td>Full technical approach, dependencies, NFRs added</td></tr>
-    <tr><td><span class="label-badge label-stage">strat-creator-reviewed</span></td><td>Stage</td><td>All 4 reviewers have assessed (verdict: revise/reject)</td></tr>
-    <tr><td><span class="label-badge label-stage">strat-creator-approved</span></td><td>Stage</td><td>Passed all review dimensions</td></tr>
-    <tr><td><span class="label-badge label-gate">strat-creator-review-pass</span></td><td>Gate</td><td>Approved; skip re-processing in future runs</td></tr>
-    <tr><td><span class="label-badge label-gate-pending">strat-creator-revision-pending</span></td><td>Gate</td><td>Waiting for revision cycle</td></tr>
-    <tr><td><span class="label-badge label-escalation">strat-creator-needs-attention</span></td><td>Escalation</td><td>Automation cannot resolve; human must intervene</td></tr>
+    <tr><td><span class="label-badge label-stage">strat-creator-reviewed</span></td><td>Stage</td><td>Scored and reviewed by 4 independent reviewers</td></tr>
+    <tr><td><span class="label-badge label-stage">strat-creator-approved</span></td><td>Stage</td><td>Score &#8805;6/8 with no zeros — auto-approved</td></tr>
+    <tr><td><span class="label-badge label-gate">strat-creator-review-pass</span></td><td>Gate</td><td>Approved; excluded from re-processing in future runs</td></tr>
+    <tr><td><span class="label-badge label-escalation">strat-creator-needs-attention</span></td><td>Escalation</td><td>REVISE / SPLIT / REJECT — human review required</td></tr>
     <tr><td><span class="label-badge label-escalation">strat-creator-ignore</span></td><td>Exclusion</td><td>Permanent exclusion from pipeline (human-set only)</td></tr>
     </tbody>
     </table>
@@ -810,8 +849,19 @@ function cellStyle(v) {{
     return 'background:#161b22;border-color:#30363d';
 }}
 
+function scoreStyle(score) {{
+    if (score === 2) return 'background:#23302a;border-color:#3fb950;color:#3fb950';
+    if (score === 1) return 'background:#2d2400;border-color:#d29922;color:#d29922';
+    if (score === 0) return 'background:#2d1418;border-color:#f85149;color:#f85149';
+    return 'background:#161b22;border-color:#30363d;color:#6e7681';
+}}
+
+function scoreText(score) {{
+    if (score === null || score === undefined) return '—';
+    return score + '/2';
+}}
+
 function labelCssClass(label) {{
-    if (label.includes('revision-pending')) return 'label-gate-pending';
     if (label.includes('needs-attention') || label.includes('ignore')) return 'label-escalation';
     if (label.includes('review-pass')) return 'label-gate';
     if (label.includes('auto-')) return 'label-provenance';
@@ -835,9 +885,15 @@ function renderRunDetail(idx) {{
     </div>`;
 
     // KPI cards
-    html += `<div class="kpi-grid">
+    const avgScoreHtml = r.avg_total_score !== null && r.avg_total_score !== undefined
+        ? `${{r.avg_total_score}}<span style="font-size:14px;color:#6e7681">/8</span>`
+        : '—';
+    const avgScorePct = r.avg_total_score !== null ? Math.round(r.avg_total_score / 8 * 100) : 0;
+    html += `<div class="kpi-grid" style="grid-template-columns: repeat(6, 1fr)">
         <div class="kpi"><div class="kpi-value" style="color:#f0f6fc">${{r.reviewed}}</div><div class="kpi-label">Reviewed</div></div>
         <div class="kpi"><div class="kpi-value" style="color:${{healthColor(r.approval_rate)}}">${{r.approval_rate}}%</div><div class="kpi-label">Approval Rate</div></div>
+        <div class="kpi"><div class="kpi-value" style="color:${{healthColor(avgScorePct)}}">${{avgScoreHtml}}</div><div class="kpi-label">Avg Score</div></div>
+        <div class="kpi"><div class="kpi-value" style="color:#f85149">${{r.needs_attention || 0}}</div><div class="kpi-label">Needs Attention</div></div>
         <div class="kpi"><div class="kpi-value" style="color:${{healthColor(100-r.revision_rate)}}">${{r.revision_rate}}%</div><div class="kpi-label">Revision Rate</div></div>
         <div class="kpi"><div class="kpi-value" style="color:${{healthColor(r.weakest_rate)}}">${{r.weakest_rate}}%</div><div class="kpi-label">Weakest: ${{r.weakest_dim.charAt(0).toUpperCase()+r.weakest_dim.slice(1)}}</div></div>
     </div>`;
@@ -867,22 +923,34 @@ function renderRunDetail(idx) {{
         <span><span style="display:inline-block;width:10px;height:10px;background:#f85149;border-radius:2px;margin-right:4px"></span>Reject</span>
     </div></div>`;
 
-    // Verdict grid
-    let gridHtml = `<div class="grid-section"><h3>Per-Strategy Verdicts</h3>
+    // Verdict grid with numeric scores
+    let gridHtml = `<div class="grid-section"><h3>Per-Strategy Scores</h3>
         <div class="grid-header">
             <div class="grid-header-id">Strategy</div>
             <div class="grid-header-dim">Feas</div>
             <div class="grid-header-dim">Test</div>
             <div class="grid-header-dim">Scope</div>
             <div class="grid-header-dim">Arch</div>
-            <div class="grid-header-verdict">Result</div>
+            <div class="grid-header-dim">Total</div>
+            <div class="grid-header-verdict">Verdict</div>
         </div>`;
     r.strategies.forEach(s => {{
         const sid = s.strat_id.replace('STRAT-','');
+        const sc = s.scores;
         let cells = '';
-        dims.forEach(d => {{
-            cells += `<div class="grid-cell" style="${{cellStyle(s[d])}}" title="${{d}}: ${{s[d]}}"></div>`;
-        }});
+        if (sc) {{
+            dims.forEach(d => {{
+                const v = sc[d];
+                cells += `<div class="grid-cell" style="${{scoreStyle(v)}}" title="${{d}}: ${{scoreText(v)}}">${{scoreText(v)}}</div>`;
+            }});
+            const totalPct = sc.total !== null ? Math.round(sc.total / 8 * 100) : 0;
+            cells += `<div class="grid-cell" style="color:${{healthColor(totalPct)}};font-weight:600" title="Total: ${{sc.total}}/8">${{sc.total}}/8</div>`;
+        }} else {{
+            dims.forEach(d => {{
+                cells += `<div class="grid-cell" style="${{cellStyle(s[d])}}" title="${{d}}: ${{s[d]}}"></div>`;
+            }});
+            cells += `<div class="grid-cell" style="color:#6e7681">—</div>`;
+        }}
         gridHtml += `<div class="grid-row">
             <div class="grid-id">STRAT-${{sid}}</div>
             ${{cells}}
@@ -896,23 +964,40 @@ function renderRunDetail(idx) {{
     // Summary table
     html += `<table><thead><tr>
         <th></th><th>Strat ID</th><th>Title</th><th>Source RFE</th><th>Size</th>
-        <th>Feasibility</th><th>Testability</th><th>Scope</th><th>Architecture</th><th>Result</th>
+        <th>F</th><th>T</th><th>S</th><th>A</th><th>Score</th><th>Verdict</th><th>Attention</th>
     </tr></thead><tbody>`;
     r.strategies.forEach((s, i) => {{
         let badges = '';
         if (s.baseline) badges += ' <span class="badge badge-baseline">baseline</span>';
         if (s.cross_component) badges += ' <span class="badge badge-cross">cross-component</span>';
+        const sc = s.scores;
+        let scoreCells = '';
+        if (sc) {{
+            ['feasibility','testability','scope','architecture'].forEach(d => {{
+                const v = sc[d];
+                scoreCells += `<td style="${{scoreStyle(v)}};text-align:center;font-weight:600">${{v !== null && v !== undefined ? v : '—'}}</td>`;
+            }});
+            const totalPct = sc.total !== null ? Math.round(sc.total / 8 * 100) : 0;
+            scoreCells += `<td style="color:${{healthColor(totalPct)}};font-weight:600;text-align:center">${{sc.total}}/8</td>`;
+        }} else {{
+            scoreCells += `<td class="${{verdictClass(s.feasibility)}}">${{verdictLabel(s.feasibility)}}</td>`;
+            scoreCells += `<td class="${{verdictClass(s.testability)}}">${{verdictLabel(s.testability)}}</td>`;
+            scoreCells += `<td class="${{verdictClass(s.scope)}}">${{verdictLabel(s.scope)}}</td>`;
+            scoreCells += `<td class="${{verdictClass(s.architecture)}}">${{verdictLabel(s.architecture)}}</td>`;
+            scoreCells += `<td style="color:#6e7681;text-align:center">—</td>`;
+        }}
+        const attentionHtml = s.needs_attention
+            ? '<span style="color:#f85149;font-weight:600">&#9679; Yes</span>'
+            : '<span style="color:#3fb950">&#10003;</span>';
         html += `<tr class="clickable" onclick="toggleRunDetail(${{idx}},${{i}})">
             <td><span class="expand-icon" id="ricon-${{idx}}-${{i}}">&#9654;</span></td>
             <td><strong>${{s.strat_id}}</strong></td>
             <td>${{s.title}}${{badges}}</td>
             <td>${{s.source_rfe}}</td>
             <td><span class="badge badge-size">${{s.size}}</span></td>
-            <td class="${{verdictClass(s.feasibility)}}">${{verdictLabel(s.feasibility)}}</td>
-            <td class="${{verdictClass(s.testability)}}">${{verdictLabel(s.testability)}}</td>
-            <td class="${{verdictClass(s.scope)}}">${{verdictLabel(s.scope)}}</td>
-            <td class="${{verdictClass(s.architecture)}}">${{verdictLabel(s.architecture)}}</td>
+            ${{scoreCells}}
             <td class="${{verdictClass(s.recommendation)}}">${{verdictLabel(s.recommendation)}}</td>
+            <td style="text-align:center">${{attentionHtml}}</td>
         </tr>
         <tr><td colspan="10" style="padding:0">
             <div class="detail-panel" id="rpanel-${{idx}}-${{i}}">
@@ -1087,6 +1172,58 @@ function initCharts() {{
                 y: {{
                     min: 0, max: 100,
                     ticks: {{ callback: v => v + '%' }},
+                    grid: {{ color: '#161b22' }},
+                }},
+                x: {{ grid: {{ display: false }} }},
+            }},
+        }},
+    }});
+
+    // Average score trend
+    new Chart(document.getElementById('chart-avg-score'), {{
+        type: 'line',
+        data: {{
+            labels,
+            datasets: [{{
+                label: 'Avg Score',
+                data: RUNS.map(r => r.avg_total_score),
+                borderColor: '#58a6ff',
+                backgroundColor: 'rgba(88,166,255,0.1)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 6,
+                pointHoverRadius: 8,
+                pointBackgroundColor: '#58a6ff',
+            }}]
+        }},
+        options: {{
+            responsive: true,
+            plugins: {{
+                legend: {{ display: false }},
+                annotation: {{
+                    annotations: {{
+                        threshold: {{
+                            type: 'line',
+                            yMin: 6, yMax: 6,
+                            borderColor: '#3fb950',
+                            borderWidth: 2,
+                            borderDash: [6, 3],
+                            label: {{
+                                display: true,
+                                content: 'Approval threshold (6)',
+                                position: 'start',
+                                color: '#3fb950',
+                                font: {{ size: 11 }},
+                                backgroundColor: 'rgba(0,0,0,0.7)',
+                            }}
+                        }}
+                    }}
+                }}
+            }},
+            scales: {{
+                y: {{
+                    min: 0, max: 8,
+                    ticks: {{ stepSize: 1 }},
                     grid: {{ color: '#161b22' }},
                 }},
                 x: {{ grid: {{ display: false }} }},

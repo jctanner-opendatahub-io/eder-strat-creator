@@ -175,8 +175,6 @@ def pct(n, total):
 def label_css_class(label):
     """Map a label to its CSS class."""
     cat = label_category(label)
-    if cat == "gate" and label.endswith("revision-pending"):
-        return "label-gate-pending"
     return {
         "provenance": "label-provenance",
         "stage": "label-stage",
@@ -216,6 +214,7 @@ def generate_html(tasks, reviews, config, output_path):
         source_rfe = meta.get("source_rfe", "")
         cfg = config.get(source_rfe, {})
 
+        scores = rev_meta.get("scores", {})
         rows.append({
             "strat_id": strat_id,
             "title": meta.get("title", ""),
@@ -226,10 +225,18 @@ def generate_html(tasks, reviews, config, output_path):
             "baseline": cfg.get("baseline", False),
             "cross_component": cfg.get("cross_component", False),
             "recommendation": rev_meta.get("recommendation", "—"),
+            "needs_attention": rev_meta.get("needs_attention", False),
             "feasibility": reviewers.get("feasibility", "—"),
             "testability": reviewers.get("testability", "—"),
             "scope": reviewers.get("scope", "—"),
             "architecture": reviewers.get("architecture", "—"),
+            "scores": {
+                "feasibility": scores.get("feasibility"),
+                "testability": scores.get("testability"),
+                "scope": scores.get("scope"),
+                "architecture": scores.get("architecture"),
+                "total": scores.get("total"),
+            } if scores else None,
             "strategy_body": task.get("body", ""),
             "review_body": review.get("body", ""),
             "labels": compute_strat_labels(
@@ -274,6 +281,12 @@ def generate_html(tasks, reviews, config, output_path):
     strongest_dim = max(dimensions, key=lambda d: dim_stats[d]["rate"])
     strongest_rate = dim_stats[strongest_dim]["rate"]
 
+    # Numeric score aggregates
+    scored = [r for r in rows if r.get("scores") and r["scores"].get("total") is not None]
+    has_scores = len(scored) > 0
+    avg_total_score = round(sum(r["scores"]["total"] for r in scored) / len(scored), 1) if scored else None
+    needs_attention = sum(1 for r in reviewed_rows if r.get("needs_attention", False))
+
     # Hero statement
     if approval_rate >= 70:
         hero_text = f"{approved} of {total_reviewed} strategies ready — pipeline is healthy"
@@ -306,26 +319,43 @@ def generate_html(tasks, reviews, config, output_path):
         </div>"""
 
     # --- Build verdict grid HTML ---
+    def score_style(score):
+        if score == 2:
+            return "background:#23302a;border-color:#3fb950;color:#3fb950"
+        elif score == 1:
+            return "background:#2d2400;border-color:#d29922;color:#d29922"
+        elif score == 0:
+            return "background:#2d1418;border-color:#f85149;color:#f85149"
+        return "background:#161b22;border-color:#30363d;color:#6e7681"
+
+    def verdict_cell_style(v):
+        if is_approve(v):
+            return "background:#23302a;border-color:#3fb950"
+        elif is_revise(v):
+            return "background:#2d2400;border-color:#d29922"
+        elif is_reject(v):
+            return "background:#2d1418;border-color:#f85149"
+        return "background:#161b22;border-color:#30363d"
+
     grid_html = ""
     for row in rows:
         rec = row["recommendation"]
         rec_cls = verdict_class(rec)
+        sc = row.get("scores")
         cells = ""
-        for dim in dimensions:
-            v = row[dim]
-            if is_approve(v):
-                bg = "#23302a"
-                border = "#3fb950"
-            elif is_revise(v):
-                bg = "#2d2400"
-                border = "#d29922"
-            elif is_reject(v):
-                bg = "#2d1418"
-                border = "#f85149"
-            else:
-                bg = "#161b22"
-                border = "#30363d"
-            cells += f'<div class="grid-cell" style="background:{bg};border-color:{border}" title="{dim.title()}: {v}"></div>'
+        if sc:
+            for dim in dimensions:
+                v = sc.get(dim)
+                text = f"{v}/2" if v is not None else "—"
+                cells += f'<div class="grid-cell" style="{score_style(v)}" title="{dim.title()}: {text}">{text}</div>'
+            total = sc.get("total")
+            total_pct = round(total / 8 * 100) if total is not None else 0
+            cells += f'<div class="grid-cell" style="color:{health_color(total_pct)};font-weight:600" title="Total: {total}/8">{total}/8</div>'
+        else:
+            for dim in dimensions:
+                v = row[dim]
+                cells += f'<div class="grid-cell" style="{verdict_cell_style(v)}" title="{dim.title()}: {v}"></div>'
+            cells += '<div class="grid-cell" style="color:#6e7681">—</div>'
         strat_short = row["strat_id"].replace("STRAT-", "")
         grid_html += f"""
         <div class="grid-row">
@@ -381,7 +411,7 @@ body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans
 .grid-header-verdict {{ width: 72px; text-align: right; font-size: 11px; color: #6e7681; text-transform: uppercase; }}
 .grid-row {{ display: flex; align-items: center; gap: 4px; padding: 4px 0; }}
 .grid-id {{ width: 90px; font-size: 13px; color: #c9d1d9; font-weight: 500; }}
-.grid-cell {{ width: 40px; height: 24px; border-radius: 4px; border: 2px solid; }}
+.grid-cell {{ width: 40px; height: 24px; border-radius: 4px; border: 2px solid; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; }}
 .grid-verdict {{ width: 72px; text-align: right; font-size: 12px; font-weight: 600; }}
 
 /* Summary panels */
@@ -479,7 +509,7 @@ tr.clickable {{ cursor: pointer; }}
 </div>
 
 <!-- KPI cards -->
-<div class="kpi-grid">
+<div class="kpi-grid" style="grid-template-columns: repeat(6, 1fr);">
     <div class="kpi">
         <div class="kpi-value" style="color:#f0f6fc">{total_reviewed}</div>
         <div class="kpi-label">Strategies Reviewed</div>
@@ -489,6 +519,16 @@ tr.clickable {{ cursor: pointer; }}
         <div class="kpi-value" style="color:{health_color(approval_rate)}">{approval_rate}%</div>
         <div class="kpi-label">Approval Rate</div>
         <div class="kpi-detail">{approved} of {total_reviewed} approved</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-value" style="color:{health_color(int(avg_total_score / 8 * 100) if avg_total_score else 0)}">{avg_total_score if avg_total_score is not None else "—"}<span style="font-size:16px;color:#6e7681">/8</span></div>
+        <div class="kpi-label">Avg Score</div>
+        <div class="kpi-detail">{"Rubric: F+T+S+A (0-2 each)" if has_scores else "Scoring not yet enabled"}</div>
+    </div>
+    <div class="kpi">
+        <div class="kpi-value" style="color:#f85149">{needs_attention}</div>
+        <div class="kpi-label">Needs Attention</div>
+        <div class="kpi-detail">{"Human review required" if needs_attention > 0 else "All clear"}</div>
     </div>
     <div class="kpi">
         <div class="kpi-value" style="color:{health_color(100 - revision_rate)}">{revision_rate}%</div>
@@ -514,14 +554,15 @@ tr.clickable {{ cursor: pointer; }}
         </div>
     </div>
     <div class="grid-section">
-        <h3>Per-Strategy Verdicts</h3>
+        <h3>Per-Strategy Scores</h3>
         <div class="grid-header">
             <div class="grid-header-id">Strategy</div>
             <div class="grid-header-dim">Feas</div>
             <div class="grid-header-dim">Test</div>
             <div class="grid-header-dim">Scope</div>
             <div class="grid-header-dim">Arch</div>
-            <div class="grid-header-verdict">Result</div>
+            <div class="grid-header-dim">Total</div>
+            <div class="grid-header-verdict">Verdict</div>
         </div>
         {grid_html}
     </div>
@@ -535,11 +576,13 @@ tr.clickable {{ cursor: pointer; }}
     <th>Title</th>
     <th>Source RFE</th>
     <th>Size</th>
-    <th>Feasibility</th>
-    <th>Testability</th>
-    <th>Scope</th>
-    <th>Architecture</th>
-    <th>Recommendation</th>
+    <th>F</th>
+    <th>T</th>
+    <th>S</th>
+    <th>A</th>
+    <th>Score</th>
+    <th>Verdict</th>
+    <th>Attention</th>
 </tr>
 </thead>
 <tbody>
@@ -552,16 +595,32 @@ tr.clickable {{ cursor: pointer; }}
         if row["cross_component"]:
             badges += ' <span class="badge badge-cross">cross-component</span>'
 
+        sc = row.get("scores")
+        if sc:
+            score_cells = ""
+            for dim in dimensions:
+                v = sc.get(dim)
+                score_cells += f'<td style="{score_style(v)};text-align:center;font-weight:600">{v if v is not None else "—"}</td>'
+            total = sc.get("total")
+            total_pct = round(total / 8 * 100) if total is not None else 0
+            score_cells += f'<td style="color:{health_color(total_pct)};font-weight:600;text-align:center">{total}/8</td>'
+        else:
+            score_cells = f'<td class="{verdict_class(row["feasibility"])}">{verdict_label(row["feasibility"])}</td>'
+            score_cells += f'<td class="{verdict_class(row["testability"])}">{verdict_label(row["testability"])}</td>'
+            score_cells += f'<td class="{verdict_class(row["scope"])}">{verdict_label(row["scope"])}</td>'
+            score_cells += f'<td class="{verdict_class(row["architecture"])}">{verdict_label(row["architecture"])}</td>'
+            score_cells += '<td style="color:#6e7681;text-align:center">—</td>'
+
+        attention_html = '<span style="color:#f85149;font-weight:600">&#9679; Yes</span>' if row.get("needs_attention") else '<span style="color:#3fb950">&#10003;</span>'
+
         html += f"""<tr>
     <td><strong>{escape_html(row["strat_id"])}</strong></td>
     <td>{escape_html(row["title"])}{badges}</td>
     <td>{escape_html(row["source_rfe"])}</td>
     <td><span class="badge badge-size">{escape_html(str(row["size"]))}</span></td>
-    <td class="{verdict_class(row["feasibility"])}">{verdict_label(row["feasibility"])}</td>
-    <td class="{verdict_class(row["testability"])}">{verdict_label(row["testability"])}</td>
-    <td class="{verdict_class(row["scope"])}">{verdict_label(row["scope"])}</td>
-    <td class="{verdict_class(row["architecture"])}">{verdict_label(row["architecture"])}</td>
+    {score_cells}
     <td class="{verdict_class(row["recommendation"])}">{verdict_label(row["recommendation"])}</td>
+    <td style="text-align:center">{attention_html}</td>
 </tr>
 """
 
@@ -601,22 +660,23 @@ graph LR
         E -->|"+strat-creator-auto-created\\n+strat-creator-draft"| F1
         F4 -->|"+strat-creator-auto-refined\\ndraft &#8594; strat-creator-refined"| G{{{{refined}}}}
 
-        subgraph SV["strategy.review (4 parallel)"]
-            R1[feasibility]
-            R2[testability]
-            R3[scope]
-            R4[architecture]
-            R5[other subtasks]
+        subgraph SV["strategy.review"]
+            SC[Score: F/T/S/A\\n0-2 each] --> CON[Consolidate\\nscores + prose]
+            subgraph RV["4 parallel reviewers"]
+                R1[feasibility]
+                R2[testability]
+                R3[scope]
+                R4[architecture]
+            end
+            R1 & R2 & R3 & R4 --> CON
         end
 
-        G --> R1 & R2 & R3 & R4 & R5
-        R1 & R2 & R3 & R4 & R5 --> CON[Consolidate\\nreviews]
-        CON --> Q{{{{approve?}}}}
-        Q -->|"+strat-creator-approved\\n+strat-creator-review-pass"| I[strategy.submit]
+        G --> SC & R1 & R2 & R3 & R4
+        CON --> Q{{{{&#8805;6/8\\nno zeros?}}}}
+        Q -->|"APPROVE\\n+approved +review-pass"| I[strategy.submit]
         I --> KO["Kick off Phase 3"]
-        Q -->|"+strat-creator-reviewed\\n+strat-creator-revision-pending"| P["Human review"]
-        P --> H[strategy.revise]
-        H -->|"max 2 cycles\\n+strat-creator-auto-revised\\n-strat-creator-reviewed\\n-strat-creator-revision-pending"| F1
+        Q -->|"REVISE / SPLIT / REJECT\\n+needs-attention"| P["Human review"]
+        P -->|"Human fixes &\\nremoves needs-attention"| G
     end
 
     KO -->|"PM adds\\nstrat-prioritized label"| FR
@@ -637,16 +697,15 @@ graph LR
     style F2 fill:#c77d1a,color:#fff
     style F3 fill:#c77d1a,color:#fff
     style F4 fill:#c77d1a,color:#fff
+    style SC fill:#c77d1a,color:#fff
     style R1 fill:#c77d1a,color:#fff
     style R2 fill:#c77d1a,color:#fff
     style R3 fill:#c77d1a,color:#fff
     style R4 fill:#c77d1a,color:#fff
-    style R5 fill:#21262d,color:#8b949e,stroke:#30363d,stroke-dasharray: 5 5
     style CON fill:#c77d1a,color:#fff
     style G fill:#1f3a5f,color:#58a6ff,stroke:#58a6ff
     style Q fill:#1f3a5f,color:#58a6ff,stroke:#58a6ff
     style P fill:#3d1f00,color:#f0883e,stroke:#f0883e
-    style H fill:#555,color:#fff
     style I fill:#555,color:#fff
     style KO fill:#1f6feb,color:#fff,stroke:#58a6ff
     style FR fill:#555,color:#fff
@@ -668,11 +727,10 @@ graph LR
     <tr><td><span class="label-badge label-provenance">strat-creator-auto-revised</span></td><td>Provenance</td><td>strategy.revise modifies content after review feedback</td></tr>
     <tr><td><span class="label-badge label-stage">strat-creator-draft</span></td><td>Stage</td><td>Strategy stub exists, awaiting refinement</td></tr>
     <tr><td><span class="label-badge label-stage">strat-creator-refined</span></td><td>Stage</td><td>Full technical approach, dependencies, NFRs added</td></tr>
-    <tr><td><span class="label-badge label-stage">strat-creator-reviewed</span></td><td>Stage</td><td>All 4 reviewers have assessed (verdict: revise/reject)</td></tr>
-    <tr><td><span class="label-badge label-stage">strat-creator-approved</span></td><td>Stage</td><td>Passed all review dimensions</td></tr>
-    <tr><td><span class="label-badge label-gate">strat-creator-review-pass</span></td><td>Gate</td><td>Approved; skip re-processing in future runs</td></tr>
-    <tr><td><span class="label-badge label-gate-pending">strat-creator-revision-pending</span></td><td>Gate</td><td>Waiting for revision cycle</td></tr>
-    <tr><td><span class="label-badge label-escalation">strat-creator-needs-attention</span></td><td>Escalation</td><td>Automation cannot resolve; human must intervene</td></tr>
+    <tr><td><span class="label-badge label-stage">strat-creator-reviewed</span></td><td>Stage</td><td>Scored and reviewed by 4 independent reviewers</td></tr>
+    <tr><td><span class="label-badge label-stage">strat-creator-approved</span></td><td>Stage</td><td>Score &#8805;6/8 with no zeros &#8212; auto-approved</td></tr>
+    <tr><td><span class="label-badge label-gate">strat-creator-review-pass</span></td><td>Gate</td><td>Approved; excluded from re-processing in future runs</td></tr>
+    <tr><td><span class="label-badge label-escalation">strat-creator-needs-attention</span></td><td>Escalation</td><td>REVISE / SPLIT / REJECT &#8212; human review required</td></tr>
     <tr><td><span class="label-badge label-escalation">strat-creator-ignore</span></td><td>Exclusion</td><td>Permanent exclusion from pipeline (human-set only)</td></tr>
     </tbody>
     </table>
