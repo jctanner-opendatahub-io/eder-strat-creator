@@ -14,3 +14,15 @@ test_rfes:
     size: S
     comment: "Single component: AI Core Dashboard. Status: New"
     cross_component: false
+  - id: RHAIRFE-710
+    title: "Chat Metrics & Observability (Tracing) in Playground"
+    strat_key: RHAISTRAT-133
+    size: M
+    comment: "Priority: Critical, Status: Approved, Cloned from RHAISTRAT-133. STRAT text diverges from RFE (human edits)."
+    cross_component: true
+  - id: RHAIRFE-1056
+    title: "Red Hat AI Inference UI MVP"
+    strat_key: RHAISTRAT-1172
+    size: L
+    comment: "Priority: Critical, Status: Approved, Cloned from RHAISTRAT-1172. STRAT text diverges from RFE (human edits)."
+    cross_component: true
