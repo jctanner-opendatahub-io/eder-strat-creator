@@ -37,6 +37,9 @@ def is_revise(v):
 def is_reject(v):
     return v in ("reject", "rejected", "infeasible")
 
+def is_split(v):
+    return v == "split"
+
 def pct(n, total):
     return round(100 * n / total) if total > 0 else 0
 
@@ -54,6 +57,8 @@ def verdict_class(verdict):
         return "verdict-revise"
     elif verdict in ("reject", "rejected", "infeasible"):
         return "verdict-reject"
+    elif verdict == "split":
+        return "verdict-split"
     return "verdict-unknown"
 
 def verdict_label(verdict):
@@ -82,10 +87,29 @@ def md_to_html(md_text):
     html_lines = []
     in_list = False
     in_code = False
+    in_table = False
     code_block = []
+    table_rows = []
+
+    def flush_table():
+        nonlocal in_table, table_rows
+        if not table_rows:
+            return
+        html_lines.append('<table>')
+        for idx, row_cells in enumerate(table_rows):
+            tag = "th" if idx == 0 else "td"
+            html_lines.append("<tr>")
+            for cell in row_cells:
+                html_lines.append(f"<{tag}>{inline_format(cell.strip())}</{tag}>")
+            html_lines.append("</tr>")
+        html_lines.append("</table>")
+        table_rows = []
+        in_table = False
 
     for line in lines:
         if line.strip().startswith("```"):
+            if in_table:
+                flush_table()
             if in_code:
                 html_lines.append("<pre><code>" + escape_html("\n".join(code_block)) + "</code></pre>")
                 code_block = []
@@ -100,6 +124,19 @@ def md_to_html(md_text):
             code_block.append(line)
             continue
         stripped = line.strip()
+        # Markdown table rows
+        if stripped.startswith("|") and stripped.endswith("|"):
+            if re.match(r'^\|[\s\-:|]+\|$', stripped):
+                continue
+            if in_list:
+                html_lines.append("</ul>")
+                in_list = False
+            in_table = True
+            cells = [c for c in stripped.split("|")[1:-1]]
+            table_rows.append(cells)
+            continue
+        if in_table:
+            flush_table()
         if not stripped:
             if in_list:
                 html_lines.append("</ul>")
@@ -134,6 +171,8 @@ def md_to_html(md_text):
             in_list = False
         html_lines.append(f"<p>{inline_format(stripped)}</p>")
 
+    if in_table:
+        flush_table()
     if in_list:
         html_lines.append("</ul>")
     if in_code:
@@ -233,23 +272,28 @@ def extract_run_stats(run_dir, config):
     dimensions = ["feasibility", "testability", "scope", "architecture"]
     dim_stats = {}
     for dim in dimensions:
-        vals = [s[dim] for s in reviewed if s[dim] not in ("—", "")]
-        dim_total = len(vals)
-        dim_approve = sum(1 for v in vals if is_approve(v))
+        scored_vals = [s["scores"][dim] for s in strategies
+                       if s.get("scores") and s["scores"].get(dim) is not None]
+        dim_total = len(scored_vals)
+        dim_pass = sum(1 for v in scored_vals if v == 2)
+        dim_partial = sum(1 for v in scored_vals if v == 1)
+        dim_fail = sum(1 for v in scored_vals if v == 0)
+        dim_sum = sum(scored_vals)
+        dim_max = dim_total * 2
         dim_stats[dim] = {
             "total": dim_total,
-            "approve": dim_approve,
-            "revise": sum(1 for v in vals if is_revise(v)),
-            "reject": sum(1 for v in vals if is_reject(v)),
-            "rate": pct(dim_approve, dim_total),
+            "pass": dim_pass,
+            "partial": dim_partial,
+            "fail": dim_fail,
+            "rate": pct(dim_sum, dim_max),
         }
 
     weakest_dim = min(dimensions, key=lambda d: dim_stats[d]["rate"])
     strongest_dim = max(dimensions, key=lambda d: dim_stats[d]["rate"])
 
-    # First-pass quality score: % of all dimension checks that pass
+    # First-pass quality score: % of all dimension scores that are 2/2
     total_checks = sum(dim_stats[d]["total"] for d in dimensions)
-    total_passes = sum(dim_stats[d]["approve"] for d in dimensions)
+    total_passes = sum(dim_stats[d]["pass"] for d in dimensions)
     quality_score = pct(total_passes, total_checks)
 
     # Numeric score aggregates (when scores are available)
@@ -484,6 +528,7 @@ tr.clickable {{ cursor: pointer; }}
 .verdict-approve {{ color: #3fb950; font-weight: 600; }}
 .verdict-revise {{ color: #d29922; font-weight: 600; }}
 .verdict-reject {{ color: #f85149; font-weight: 600; }}
+.verdict-split {{ color: #f78166; font-weight: 600; }}
 .verdict-unknown {{ color: #8b949e; }}
 
 /* Badges */
@@ -682,17 +727,19 @@ graph LR
         F4 -->|"+strat-creator-auto-refined\\ndraft &#8594; strat-creator-refined"| G{{{{refined}}}}
 
         subgraph SV["strategy.review"]
-            SC[Score: F/T/S/A\\n0-2 each] --> CON[Consolidate\\nscores + prose]
-            subgraph RV["4 parallel reviewers"]
-                R1[feasibility]
-                R2[testability]
-                R3[scope]
-                R4[architecture]
-            end
-            R1 & R2 & R3 & R4 --> CON
+            R1[feasibility]
+            R2[testability]
+            R3[scope]
+            R4[architecture]
+            SC1["assess-strat\\nscorer agent\\nF/T/S/A 0-2"]
+            SCRIPTS["parse_results.py &#8594; apply_scores.py\\n(deterministic verdicts)"]
+            CON[Write review file\\nscores + prose]
+            R1 & R2 & R3 & R4 --> SC1
+            SC1 --> SCRIPTS
+            SCRIPTS --> CON
         end
 
-        G --> SC & R1 & R2 & R3 & R4
+        G --> R1 & R2 & R3 & R4
         CON --> Q{{{{&#8805;6/8\\nno zeros?}}}}
         Q -->|"APPROVE\\n+approved +review-pass"| I[strategy.submit]
         I --> KO["Kick off Phase 3"]
@@ -718,7 +765,8 @@ graph LR
     style F2 fill:#c77d1a,color:#fff
     style F3 fill:#c77d1a,color:#fff
     style F4 fill:#c77d1a,color:#fff
-    style SC fill:#c77d1a,color:#fff
+    style SC1 fill:#c77d1a,color:#fff
+    style SCRIPTS fill:#6e40c9,color:#fff
     style R1 fill:#c77d1a,color:#fff
     style R2 fill:#c77d1a,color:#fff
     style R3 fill:#c77d1a,color:#fff
@@ -831,6 +879,7 @@ function verdictClass(v) {{
     if (['approve','approved'].includes(v)) return 'verdict-approve';
     if (['revise','needs revision','needs_revision'].includes(v)) return 'verdict-revise';
     if (['reject','rejected','infeasible'].includes(v)) return 'verdict-reject';
+    if (v === 'split') return 'verdict-split';
     return 'verdict-unknown';
 }}
 
@@ -845,6 +894,7 @@ function verdictLabel(v) {{
 function cellStyle(v) {{
     if (['approve','approved'].includes(v)) return 'background:#23302a;border-color:#3fb950';
     if (['revise','needs revision','needs_revision'].includes(v)) return 'background:#2d2400;border-color:#d29922';
+    if (v === 'split') return 'background:#2d1a0d;border-color:#f78166';
     if (['reject','rejected','infeasible'].includes(v)) return 'background:#2d1418;border-color:#f85149';
     return 'background:#161b22;border-color:#30363d';
 }}
@@ -904,23 +954,23 @@ function renderRunDetail(idx) {{
     dims.forEach(dim => {{
         const ds = r.dimensions[dim];
         const rate = ds.rate;
-        const aw = ds.total > 0 ? Math.round(100*ds.approve/ds.total) : 0;
-        const rw = ds.total > 0 ? Math.round(100*ds.revise/ds.total) : 0;
-        const rejw = ds.total > 0 ? Math.round(100*ds.reject/ds.total) : 0;
+        const pw = ds.total > 0 ? Math.round(100*(ds.pass||0)/ds.total) : 0;
+        const partw = ds.total > 0 ? Math.round(100*(ds.partial||0)/ds.total) : 0;
+        const fw = ds.total > 0 ? Math.round(100*(ds.fail||0)/ds.total) : 0;
         dimHtml += `<div class="dim-row">
             <div class="dim-label">${{dim.charAt(0).toUpperCase()+dim.slice(1)}}</div>
             <div class="dim-bar-container"><div class="dim-bar-track">
-                <div class="dim-bar-seg" style="width:${{aw}}%;background:#3fb950" title="${{ds.approve}} approved"></div>
-                <div class="dim-bar-seg" style="width:${{rw}}%;background:#d29922" title="${{ds.revise}} revise"></div>
-                <div class="dim-bar-seg" style="width:${{rejw}}%;background:#f85149" title="${{ds.reject}} rejected"></div>
+                <div class="dim-bar-seg" style="width:${{pw}}%;background:#3fb950" title="${{ds.pass||0}} scored 2/2"></div>
+                <div class="dim-bar-seg" style="width:${{partw}}%;background:#d29922" title="${{ds.partial||0}} scored 1/2"></div>
+                <div class="dim-bar-seg" style="width:${{fw}}%;background:#f85149" title="${{ds.fail||0}} scored 0/2"></div>
             </div></div>
             <div class="dim-rate" style="color:${{healthColor(rate)}}">${{rate}}%</div>
         </div>`;
     }});
     dimHtml += `<div style="display:flex;gap:16px;margin-top:12px;font-size:11px;color:#6e7681">
-        <span><span style="display:inline-block;width:10px;height:10px;background:#3fb950;border-radius:2px;margin-right:4px"></span>Approve</span>
-        <span><span style="display:inline-block;width:10px;height:10px;background:#d29922;border-radius:2px;margin-right:4px"></span>Revise</span>
-        <span><span style="display:inline-block;width:10px;height:10px;background:#f85149;border-radius:2px;margin-right:4px"></span>Reject</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#3fb950;border-radius:2px;margin-right:4px"></span>2/2 (pass)</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#d29922;border-radius:2px;margin-right:4px"></span>1/2 (gaps)</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#f85149;border-radius:2px;margin-right:4px"></span>0/2 (fail)</span>
     </div></div>`;
 
     // Verdict grid with numeric scores
@@ -1090,9 +1140,14 @@ function initCharts() {{
                 backgroundColor: '#d29922',
                 borderRadius: 4,
             }}, {{
-                label: 'Other',
-                data: RUNS.map(r => r.reviewed - r.approved - r.revise),
-                backgroundColor: '#484f58',
+                label: 'Split',
+                data: RUNS.map(r => r.split || 0),
+                backgroundColor: '#f78166',
+                borderRadius: 4,
+            }}, {{
+                label: 'Reject',
+                data: RUNS.map(r => r.reject || 0),
+                backgroundColor: '#f85149',
                 borderRadius: 4,
             }}]
         }},

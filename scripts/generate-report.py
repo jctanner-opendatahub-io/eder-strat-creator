@@ -60,11 +60,30 @@ def md_to_html(md_text):
     html_lines = []
     in_list = False
     in_code = False
+    in_table = False
     code_block = []
+    table_rows = []
+
+    def flush_table():
+        nonlocal in_table, table_rows
+        if not table_rows:
+            return
+        html_lines.append('<table>')
+        for idx, row_cells in enumerate(table_rows):
+            tag = "th" if idx == 0 else "td"
+            html_lines.append("<tr>")
+            for cell in row_cells:
+                html_lines.append(f"<{tag}>{inline_format(cell.strip())}</{tag}>")
+            html_lines.append("</tr>")
+        html_lines.append("</table>")
+        table_rows = []
+        in_table = False
 
     for line in lines:
         # Code blocks
         if line.strip().startswith("```"):
+            if in_table:
+                flush_table()
             if in_code:
                 html_lines.append("<pre><code>" + escape_html("\n".join(code_block)) + "</code></pre>")
                 code_block = []
@@ -81,6 +100,23 @@ def md_to_html(md_text):
             continue
 
         stripped = line.strip()
+
+        # Markdown table rows (lines starting and ending with |)
+        if stripped.startswith("|") and stripped.endswith("|"):
+            # Skip separator rows like |---|---|---|
+            if re.match(r'^\|[\s\-:|]+\|$', stripped):
+                continue
+            if in_list:
+                html_lines.append("</ul>")
+                in_list = False
+            in_table = True
+            cells = [c for c in stripped.split("|")[1:-1]]
+            table_rows.append(cells)
+            continue
+
+        # If we were in a table and hit a non-table line, flush it
+        if in_table:
+            flush_table()
 
         # Empty line
         if not stripped:
@@ -125,6 +161,8 @@ def md_to_html(md_text):
             in_list = False
         html_lines.append(f"<p>{inline_format(stripped)}</p>")
 
+    if in_table:
+        flush_table()
     if in_list:
         html_lines.append("</ul>")
     if in_code:
@@ -149,6 +187,8 @@ def verdict_class(verdict):
         return "verdict-revise"
     elif verdict in ("reject", "rejected", "infeasible"):
         return "verdict-reject"
+    elif verdict == "split":
+        return "verdict-split"
     return "verdict-unknown"
 
 def verdict_label(verdict):
@@ -158,6 +198,8 @@ def verdict_label(verdict):
         return "Revise"
     elif verdict in ("reject", "rejected", "infeasible"):
         return "Reject"
+    elif verdict == "split":
+        return "Split"
     return verdict or "—"
 
 def is_approve(v):
@@ -168,6 +210,9 @@ def is_revise(v):
 
 def is_reject(v):
     return v in ("reject", "rejected", "infeasible")
+
+def is_split(v):
+    return v == "split"
 
 def pct(n, total):
     return round(100 * n / total) if total > 0 else 0
@@ -253,26 +298,30 @@ def generate_html(tasks, reviews, config, output_path):
     approved = sum(1 for r in reviewed_rows if is_approve(r["recommendation"]))
     revise = sum(1 for r in reviewed_rows if is_revise(r["recommendation"]))
     reject = sum(1 for r in reviewed_rows if is_reject(r["recommendation"]))
+    split = sum(1 for r in reviewed_rows if is_split(r["recommendation"]))
     baselines = sum(1 for r in rows if r["baseline"])
 
     approval_rate = pct(approved, total_reviewed)
     revision_rate = pct(revise, total_reviewed)
 
-    # Per-dimension stats
+    # Per-dimension stats from numeric scores (0=fail, 1=needs work, 2=pass)
     dimensions = ["feasibility", "testability", "scope", "architecture"]
     dim_stats = {}
     for dim in dimensions:
-        vals = [r[dim] for r in reviewed_rows if r[dim] not in ("—", "")]
-        dim_total = len(vals)
-        dim_approve = sum(1 for v in vals if is_approve(v))
-        dim_revise = sum(1 for v in vals if is_revise(v))
-        dim_reject = sum(1 for v in vals if is_reject(v))
+        scored_vals = [r["scores"][dim] for r in reviewed_rows
+                       if r.get("scores") and r["scores"].get(dim) is not None]
+        dim_total = len(scored_vals)
+        dim_pass = sum(1 for v in scored_vals if v == 2)
+        dim_partial = sum(1 for v in scored_vals if v == 1)
+        dim_fail = sum(1 for v in scored_vals if v == 0)
+        dim_sum = sum(scored_vals)
+        dim_max = dim_total * 2
         dim_stats[dim] = {
             "total": dim_total,
-            "approve": dim_approve,
-            "revise": dim_revise,
-            "reject": dim_reject,
-            "rate": pct(dim_approve, dim_total),
+            "pass": dim_pass,
+            "partial": dim_partial,
+            "fail": dim_fail,
+            "rate": pct(dim_sum, dim_max),
         }
 
     # Weakest dimension
@@ -288,10 +337,11 @@ def generate_html(tasks, reviews, config, output_path):
     needs_attention = sum(1 for r in reviewed_rows if r.get("needs_attention", False))
 
     # Hero statement
+    attention_count = revise + split + reject
     if approval_rate >= 70:
         hero_text = f"{approved} of {total_reviewed} strategies ready — pipeline is healthy"
     elif approval_rate >= 40:
-        hero_text = f"{approved} of {total_reviewed} strategies ready — {revise} need revision"
+        hero_text = f"{approved} of {total_reviewed} strategies ready — {attention_count} need attention"
     else:
         hero_text = f"Only {approved} of {total_reviewed} strategies ready — {weakest_dim} is the bottleneck ({weakest_rate}% pass)"
     hero_color = health_color(approval_rate)
@@ -302,17 +352,17 @@ def generate_html(tasks, reviews, config, output_path):
         ds = dim_stats[dim]
         rate = ds["rate"]
         color = health_color(rate)
-        approve_w = pct(ds["approve"], ds["total"]) if ds["total"] else 0
-        revise_w = pct(ds["revise"], ds["total"]) if ds["total"] else 0
-        reject_w = pct(ds["reject"], ds["total"]) if ds["total"] else 0
+        pass_w = pct(ds["pass"], ds["total"]) if ds["total"] else 0
+        partial_w = pct(ds["partial"], ds["total"]) if ds["total"] else 0
+        fail_w = pct(ds["fail"], ds["total"]) if ds["total"] else 0
         dim_bars_html += f"""
         <div class="dim-row">
             <div class="dim-label">{dim.title()}</div>
             <div class="dim-bar-container">
                 <div class="dim-bar-track">
-                    <div class="dim-bar-seg" style="width:{approve_w}%;background:#3fb950;" title="{ds['approve']} approved"></div>
-                    <div class="dim-bar-seg" style="width:{revise_w}%;background:#d29922;" title="{ds['revise']} revise"></div>
-                    <div class="dim-bar-seg" style="width:{reject_w}%;background:#f85149;" title="{ds['reject']} rejected"></div>
+                    <div class="dim-bar-seg" style="width:{pass_w}%;background:#3fb950;" title="{ds['pass']} scored 2/2"></div>
+                    <div class="dim-bar-seg" style="width:{partial_w}%;background:#d29922;" title="{ds['partial']} scored 1/2"></div>
+                    <div class="dim-bar-seg" style="width:{fail_w}%;background:#f85149;" title="{ds['fail']} scored 0/2"></div>
                 </div>
             </div>
             <div class="dim-rate" style="color:{color}">{rate}%</div>
@@ -333,6 +383,8 @@ def generate_html(tasks, reviews, config, output_path):
             return "background:#23302a;border-color:#3fb950"
         elif is_revise(v):
             return "background:#2d2400;border-color:#d29922"
+        elif is_split(v):
+            return "background:#2d1a0d;border-color:#f78166"
         elif is_reject(v):
             return "background:#2d1418;border-color:#f85149"
         return "background:#161b22;border-color:#30363d"
@@ -431,6 +483,7 @@ tr.clickable {{ cursor: pointer; }}
 .verdict-approve {{ color: #3fb950; font-weight: 600; }}
 .verdict-revise {{ color: #d29922; font-weight: 600; }}
 .verdict-reject {{ color: #f85149; font-weight: 600; }}
+.verdict-split {{ color: #f78166; font-weight: 600; }}
 .verdict-unknown {{ color: #8b949e; }}
 .badge {{ display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; }}
 .badge-baseline {{ background: #1f3a5f; color: #58a6ff; }}
@@ -531,9 +584,9 @@ tr.clickable {{ cursor: pointer; }}
         <div class="kpi-detail">{"Human review required" if needs_attention > 0 else "All clear"}</div>
     </div>
     <div class="kpi">
-        <div class="kpi-value" style="color:{health_color(100 - revision_rate)}">{revision_rate}%</div>
-        <div class="kpi-label">Revision Rate</div>
-        <div class="kpi-detail">{revise} need rework</div>
+        <div class="kpi-value" style="color:#d29922">{revise + split}</div>
+        <div class="kpi-label">Revise / Split</div>
+        <div class="kpi-detail">{revise} revise, {split} split</div>
     </div>
     <div class="kpi">
         <div class="kpi-value" style="color:{health_color(weakest_rate)}">{weakest_rate}%</div>
@@ -548,9 +601,9 @@ tr.clickable {{ cursor: pointer; }}
         <h3>Review Dimensions</h3>
         {dim_bars_html}
         <div style="display:flex;gap:16px;margin-top:12px;font-size:11px;color:#6e7681">
-            <span><span style="display:inline-block;width:10px;height:10px;background:#3fb950;border-radius:2px;margin-right:4px"></span>Approve</span>
-            <span><span style="display:inline-block;width:10px;height:10px;background:#d29922;border-radius:2px;margin-right:4px"></span>Revise</span>
-            <span><span style="display:inline-block;width:10px;height:10px;background:#f85149;border-radius:2px;margin-right:4px"></span>Reject</span>
+            <span><span style="display:inline-block;width:10px;height:10px;background:#3fb950;border-radius:2px;margin-right:4px"></span>2/2 (pass)</span>
+            <span><span style="display:inline-block;width:10px;height:10px;background:#d29922;border-radius:2px;margin-right:4px"></span>1/2 (gaps)</span>
+            <span><span style="display:inline-block;width:10px;height:10px;background:#f85149;border-radius:2px;margin-right:4px"></span>0/2 (fail)</span>
         </div>
     </div>
     <div class="grid-section">
@@ -661,17 +714,19 @@ graph LR
         F4 -->|"+strat-creator-auto-refined\\ndraft &#8594; strat-creator-refined"| G{{{{refined}}}}
 
         subgraph SV["strategy.review"]
-            SC[Score: F/T/S/A\\n0-2 each] --> CON[Consolidate\\nscores + prose]
-            subgraph RV["4 parallel reviewers"]
-                R1[feasibility]
-                R2[testability]
-                R3[scope]
-                R4[architecture]
-            end
-            R1 & R2 & R3 & R4 --> CON
+            R1[feasibility]
+            R2[testability]
+            R3[scope]
+            R4[architecture]
+            SC1["assess-strat\\nscorer agent\\nF/T/S/A 0-2"]
+            SCRIPTS["parse_results.py &#8594; apply_scores.py\\n(deterministic verdicts)"]
+            CON[Write review file\\nscores + prose]
+            R1 & R2 & R3 & R4 --> SC1
+            SC1 --> SCRIPTS
+            SCRIPTS --> CON
         end
 
-        G --> SC & R1 & R2 & R3 & R4
+        G --> R1 & R2 & R3 & R4
         CON --> Q{{{{&#8805;6/8\\nno zeros?}}}}
         Q -->|"APPROVE\\n+approved +review-pass"| I[strategy.submit]
         I --> KO["Kick off Phase 3"]
@@ -697,7 +752,8 @@ graph LR
     style F2 fill:#c77d1a,color:#fff
     style F3 fill:#c77d1a,color:#fff
     style F4 fill:#c77d1a,color:#fff
-    style SC fill:#c77d1a,color:#fff
+    style SC1 fill:#c77d1a,color:#fff
+    style SCRIPTS fill:#6e40c9,color:#fff
     style R1 fill:#c77d1a,color:#fff
     style R2 fill:#c77d1a,color:#fff
     style R3 fill:#c77d1a,color:#fff
