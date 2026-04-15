@@ -36,21 +36,23 @@ def load_artifacts(artifacts_dir):
     tasks = {}
     reviews = {}
 
-    for path in sorted(glob.glob(os.path.join(artifacts_dir, "strat-tasks", "STRAT-*.md"))):
-        try:
-            meta, body = read_frontmatter(path)
-            strat_id = meta.get("strat_id", Path(path).stem)
-            tasks[strat_id] = {"meta": meta, "body": body, "path": path}
-        except Exception as e:
-            print(f"Warning: failed to read {path}: {e}", file=sys.stderr)
+    for pattern in ["STRAT-*.md", "RHAISTRAT-*.md"]:
+        for path in sorted(glob.glob(os.path.join(artifacts_dir, "strat-tasks", pattern))):
+            try:
+                meta, body = read_frontmatter(path)
+                strat_id = meta.get("strat_id", Path(path).stem)
+                tasks[strat_id] = {"meta": meta, "body": body, "path": path}
+            except Exception as e:
+                print(f"Warning: failed to read {path}: {e}", file=sys.stderr)
 
-    for path in sorted(glob.glob(os.path.join(artifacts_dir, "strat-reviews", "STRAT-*-review.md"))):
-        try:
-            meta, body = read_frontmatter(path)
-            strat_id = meta.get("strat_id", Path(path).stem.replace("-review", ""))
-            reviews[strat_id] = {"meta": meta, "body": body, "path": path}
-        except Exception as e:
-            print(f"Warning: failed to read {path}: {e}", file=sys.stderr)
+    for pattern in ["STRAT-*-review.md", "RHAISTRAT-*-review.md"]:
+        for path in sorted(glob.glob(os.path.join(artifacts_dir, "strat-reviews", pattern))):
+            try:
+                meta, body = read_frontmatter(path)
+                strat_id = meta.get("strat_id", Path(path).stem.replace("-review", ""))
+                reviews[strat_id] = {"meta": meta, "body": body, "path": path}
+            except Exception as e:
+                print(f"Warning: failed to read {path}: {e}", file=sys.stderr)
 
     return tasks, reviews
 
