@@ -119,7 +119,8 @@ def ensure_review_file(review_path, strat_id, scores, score_table, feedback):
     body = f"## Scores\n\n"
     if score_table:
         body += f"{score_table}\n"
-        body += f"| **Total** | **{total}/8** | **{verdict}** |\n"
+        if "Total" not in score_table:
+            body += f"| **Total** | **{total}/8** | **{verdict}** |\n"
     else:
         body += f"| Criterion | Score | Notes |\n"
         body += f"|-----------|-------|-------|\n"
