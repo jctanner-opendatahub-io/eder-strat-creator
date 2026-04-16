@@ -1023,13 +1023,13 @@ function renderExecutiveSummary() {{
         <div style="max-height:200px"><canvas id="exec-histogram"></canvas></div>
     </div>`;
 
-    // Per-strategy table
+    // Per-strategy table with expandable detail accordions
     html += `<div class="grid-section"><h3>All Unique Strategies (deduped)</h3>
     <table><thead><tr>
-        <th>Strat ID</th><th>Title</th><th>Source RFE</th><th>Priority</th>
+        <th></th><th>Strat ID</th><th>Title</th><th>Source RFE</th><th>Priority</th>
         <th>F</th><th>T</th><th>S</th><th>A</th><th>Score</th><th>Verdict</th><th>Attention</th><th>Run</th>
     </tr></thead><tbody>`;
-    e.strategies.forEach(s => {{
+    e.strategies.forEach((s, i) => {{
         const sc = s.scores;
         let scoreCells = '';
         if (sc) {{
@@ -1045,7 +1045,8 @@ function renderExecutiveSummary() {{
         const attentionHtml = s.needs_attention
             ? '<span style="color:#f85149;font-weight:600">&#9679; Yes</span>'
             : '<span style="color:#3fb950">&#10003;</span>';
-        html += `<tr>
+        html += `<tr class="clickable" onclick="toggleExecDetail(${{i}})">
+            <td><span class="expand-icon" id="eicon-${{i}}">&#9654;</span></td>
             <td><strong>${{s.strat_id}}</strong></td>
             <td>${{s.title}}</td>
             <td>${{s.source_rfe}}</td>
@@ -1054,7 +1055,19 @@ function renderExecutiveSummary() {{
             <td class="${{verdictClass(s.recommendation)}}">${{verdictLabel(s.recommendation)}}</td>
             <td style="text-align:center">${{attentionHtml}}</td>
             <td style="font-size:12px;color:#6e7681">${{s.run_label}}</td>
-        </tr>`;
+        </tr>
+        <tr><td colspan="13" style="padding:0">
+            <div class="detail-panel" id="epanel-${{i}}">
+                <h2>${{s.strat_id}}: ${{s.title}}</h2>
+                <div class="label-bar">${{renderLabelBadges(s.labels || [])}}</div>
+                <div class="detail-tabs">
+                    <div class="detail-tab active" onclick="switchExecTab(${{i}},'review')">Review</div>
+                    <div class="detail-tab" onclick="switchExecTab(${{i}},'strategy')">Strategy</div>
+                </div>
+                <div class="tab-content active" id="etab-${{i}}-review">${{s.review_html}}</div>
+                <div class="tab-content" id="etab-${{i}}-strategy">${{s.strategy_html}}</div>
+            </div>
+        </td></tr>`;
     }});
     html += '</tbody></table></div>';
 
@@ -1371,6 +1384,21 @@ function toggleRunDetail(runIdx, stratIdx) {{
     const icon = document.getElementById(`ricon-${{runIdx}}-${{stratIdx}}`);
     panel.classList.toggle('open');
     icon.classList.toggle('open');
+}}
+
+function toggleExecDetail(idx) {{
+    const panel = document.getElementById(`epanel-${{idx}}`);
+    const icon = document.getElementById(`eicon-${{idx}}`);
+    panel.classList.toggle('open');
+    icon.classList.toggle('open');
+}}
+
+function switchExecTab(idx, tab) {{
+    const panel = document.getElementById(`epanel-${{idx}}`);
+    panel.querySelectorAll('.detail-tab').forEach(t => t.classList.remove('active'));
+    panel.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.getElementById(`etab-${{idx}}-${{tab}}`).classList.add('active');
+    event.target.classList.add('active');
 }}
 
 function switchRunTab(runIdx, stratIdx, tab) {{
