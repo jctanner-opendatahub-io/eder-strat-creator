@@ -1,0 +1,67 @@
+# Engineering 3.5 — Batch 4 of 10
+# 10 RFEs
+test_rfes:
+- id: RHAIRFE-1166
+  title: Generate Multi-Turn Conversation Evaluation Dataset from MLflow Traces
+  big_rock:
+    - Eval Hub
+  labels:
+    - strat-creator-3.5
+- id: RHAIRFE-1167
+  title: Generate Tool/Function Calling Evaluation Datasets from MLflow Traces
+  big_rock:
+    - Eval Hub
+  labels:
+    - strat-creator-3.5
+- id: RHAIRFE-1168
+  title: Extract Reasoning and Chain-of-Thought Evaluation Datasets from MLflow Traces
+  big_rock:
+    - Eval Hub
+  labels:
+    - strat-creator-3.5
+- id: RHAIRFE-1169
+  title: Automated Quality Validation and Analytics for Trace-Generated Evaluation Datasets
+  big_rock:
+    - Eval Hub
+  labels:
+    - strat-creator-3.5
+- id: RHAIRFE-1179
+  title: Multi-Format Report Export for Eval-Hub
+  big_rock:
+    - Eval Hub
+  labels:
+    - strat-creator-3.5
+- id: RHAIRFE-1180
+  title: Report and Visualization Scheduling for Eval-Hub
+  big_rock:
+    - Eval Hub
+  labels:
+    - strat-creator-3.5
+- id: RHAIRFE-1181
+  title: Live Evaluation Reports for Eval-Hub
+  big_rock:
+    - Eval Hub
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1189
+  title: 'Enable Tool Calling Support for Top 5 Open Source Models in RHOAI Catalog & Hugging Face'
+  big_rock:
+    - Tool Calling
+    - AI Hub
+  labels:
+    - strat-creator-3.5
+- id: RHAIRFE-1230
+  title: Include File Processor API in Llama Stack Operator downstream
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1236
+  title: '[DP] RHAII MaaS on xKS'
+  big_rock:
+    - llm-d
+  labels:
+    - strat-creator-3.5
+    - tech-reviewed

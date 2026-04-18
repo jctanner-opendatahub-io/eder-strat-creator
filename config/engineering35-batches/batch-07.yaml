@@ -1,0 +1,74 @@
+# Engineering 3.5 — Batch 7 of 10
+# 10 RFEs
+test_rfes:
+- id: RHAIRFE-1452
+  title: Multi-Lingual Support for AutoRAG
+  big_rock:
+    - AutoRAG
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1454
+  title: Multi-Language Support in Gen AI Studio Playground "View Code" Modal
+  big_rock:
+    - Gen AI Studio
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1455
+  title: Multi-Vector Store Selection in Gen AI Studio Playground
+  big_rock:
+    - Gen AI Studio
+    - BYO Agent
+  labels:
+    - strat-creator-3.5
+- id: RHAIRFE-1457
+  title: '[TP] Productize MCP Gateway Operator for RHOAI'
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1461
+  title: MLFlow Integration with AutoML
+  big_rock:
+    - AutoML
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1469
+  title: Production Llama Stack distribution should only include production-suitable providers
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1470
+  title: 'AutoML Advanced Experiment Settings – Preset Support & Evaluation Metric Override'
+  big_rock:
+    - AutoML
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1472
+  title: 'AutoML Enhanced Trained Model Insights (Curves & Backtesting)'
+  big_rock:
+    - AutoML
+  labels:
+    - strat-creator-3.5
+- id: RHAIRFE-1482
+  title: AutoGluon as a Supported Model Serving Runtime in Red Hat OpenShift AI
+  big_rock:
+    - AutoML
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1484
+  title: Agent Registry for OpenShift AI (RHOAI) — Phase 1
+  big_rock:
+    - AI Hub
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5

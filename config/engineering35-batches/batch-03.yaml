@@ -1,0 +1,72 @@
+# Engineering 3.5 — Batch 3 of 10
+# 10 RFEs
+test_rfes:
+- id: RHAIRFE-1021
+  title: Evaluation Stack support for DeepEval (via adapter eval-hub-sdk library)
+  big_rock:
+    - Eval Hub
+  labels:
+    - strat-creator-3.5
+- id: RHAIRFE-1028
+  title: Tech-preview (readiness) for the responses API 
+  big_rock:
+    - BYO Agent
+  labels:
+    - strat-creator-3.5
+- id: RHAIRFE-1056
+  title: Red Hat AI Inference UI MVP
+  big_rock:
+    - llm-d
+  labels:
+    - strat-creator-3.5
+    - tech-reviewed
+- id: RHAIRFE-1061
+  title: View Source Files in Gen AI Studio Playground Chat Sources and in-line RAG Solution
+  big_rock:
+    - Gen AI Studio
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1131
+  title: MaaS Platform Admin UI
+  big_rock:
+    - MaaS
+    - Observability
+  labels:
+    - strat-creator-3.5
+    - tech-reviewed
+- id: RHAIRFE-1160
+  title: Enable Agent-Discoverable Evaluations (Agent Skills) for Eval-Hub
+  big_rock:
+    - Eval Hub
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1161
+  title: MCP Server for Eval-Hub
+  big_rock:
+    - Eval Hub
+  labels:
+    - strat-creator-3.5
+    - tech-reviewed
+- id: RHAIRFE-1163
+  title: CLI Utilities for eval-hub
+  big_rock:
+    - Eval Hub
+  labels:
+    - strat-creator-3.5
+- id: RHAIRFE-1164
+  title:  EvalCard Generation per-eval run in eval-hub
+  big_rock:
+    - Eval Hub
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1165
+  title: Environment Card Generation per-eval run in eval-hub
+  big_rock:
+    - Eval Hub
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5

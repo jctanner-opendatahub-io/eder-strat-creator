@@ -1,0 +1,73 @@
+# Engineering 3.5 — Batch 6 of 10
+# 10 RFEs
+test_rfes:
+- id: RHAIRFE-1429
+  title: Tool call test and supported matrix
+  big_rock:
+    - Tool Calling
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1431
+  title: Rapid Tool-Calling Support for New Models
+  big_rock:
+    - Tool Calling
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1432
+  title: Structured Output Enforcement for Auto Tool Calls
+  big_rock:
+    - Tool Calling
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1433
+  title: Responses API Tool Calling Parity with Chat Completions
+  big_rock:
+    - Tool Calling
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1435
+  title: Deprecate and remove the Safety/Shields API from Llama Stack distribution
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1436
+  title: Deprecate and remove the Evaluation API from Llama Stack distribution
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1443
+  title: '[DP] MaaS Circuit Breaker - Pre-Request Budget Enforcement Interface'
+  big_rock:
+    - MaaS
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1445
+  title: Stable Red Hat-owned product identity for agentic API component before GA
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1449
+  title: Deploy RAG Pattern
+  big_rock:
+    - AutoRAG
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1451
+  title: Existing Vector Store Addition/Registration in gen AI studio
+  big_rock:
+    - Gen AI Studio
+    - BYO Agent
+  labels:
+    - strat-creator-3.5

@@ -1,0 +1,68 @@
+# Engineering 3.5 — Batch 1 of 10
+# 10 RFEs
+test_rfes:
+- id: RHAIRFE-184
+  title: Enable vector database selection from available Llama Stack providers based on options/characteristics (e.g. multimodal support)
+  big_rock:
+    - AutoRAG
+  labels:
+    - strat-creator-3.5
+- id: RHAIRFE-238
+  title: Industry/Use Case-Specific Evaluation Collections (MVP)
+  big_rock:
+    - Eval Hub
+  labels:
+    - strat-creator-3.5
+- id: RHAIRFE-262
+  title: GPU-as-a-Service Observability
+  big_rock:
+    - Observability
+  labels:
+    - strat-creator-3.5
+    - tech-reviewed
+- id: RHAIRFE-284
+  title: Provide Sandboxed Execution Environments for Autonomous AI Agents
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-428
+  title: Llama Stack Performance and Capacity Measurement/Documentation
+  big_rock:
+    - BYO Agent
+  labels:
+    - strat-creator-3.5
+- id: RHAIRFE-522
+  title: '[Telemetery] Introduce Llama Stack API Adoption Metrics for Product Investment Decisions'
+  big_rock:
+    - BYO Agent
+  labels:
+    - strat-creator-3.5
+- id: RHAIRFE-648
+  title: 'Llama Stack should be support Multi-Arch [Z]'
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-709
+  title: Guardrails – Surface Basic Llama Stack Guardrails in playground (MVP)
+  big_rock:
+    - Gen AI Studio
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-710
+  title: 'Chat Metrics & Observability (Tracing) in Playground'
+  big_rock:
+    - BYO Agent
+  labels:
+    - strat-creator-3.5
+- id: RHAIRFE-727
+  title: Deployment of gen AI playground configurations to executable code 
+  big_rock:
+    - Gen AI Studio
+    - BYO Agent
+  labels:
+    - strat-creator-3.5

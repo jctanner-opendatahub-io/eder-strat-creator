@@ -1,0 +1,72 @@
+# Engineering 3.5 — Batch 8 of 10
+# 10 RFEs
+test_rfes:
+- id: RHAIRFE-1486
+  title: '[GA] MaaS Body-Based Policy Enforcement — OpenAI-Compatible /v1/chat/completions Without Custom Headers'
+  big_rock:
+    - MaaS
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1487
+  title: '[TP] MaaS Multi-Tenancy — Per-Tenant Gateway and Identity Isolation'
+  big_rock:
+    - MaaS
+  labels:
+    - strat-creator-3.5
+- id: RHAIRFE-1495
+  title: Red Hat OpenShift AI (RHOAI) Operator Rename to Red Hat AI (RHAI) Operator
+  big_rock:
+    - llm-d
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1506
+  title: GA readiness for the Responses API
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1528
+  title: MLFlow Prompt Template Integration in gen AI studio
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1531
+  title: LlamaStack Support for Claude Code Agent SDK
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1543
+  title: Smart Default with Auto-Detection of Tool Calling Configuration (Stage 2)
+  big_rock:
+    - Tool Calling
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1554
+  title: Reliable Multi-Turn Stateful Tool Calling Through Llama Stack Responses API 
+  big_rock:
+    - Tool Calling
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1586
+  title: Provide OOTB connections for Common Data Sources in UI
+  big_rock:
+    - BYO Agent
+  labels:
+    - strat-creator-3.5
+- id: RHAIRFE-1614
+  title: Code Interpreter Tool Type for the Responses API
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5

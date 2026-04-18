@@ -1,0 +1,75 @@
+# Engineering 3.5 — Batch 2 of 10
+# 10 RFEs
+test_rfes:
+- id: RHAIRFE-728
+  title: User-Level Secrets Management in Gen AI Studio
+  big_rock:
+    - Gen AI Studio
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-794
+  title: OTEL-based agent trace ingestion into managed MLflow via Kagenti
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-795
+  title: Inference Performance Benchmarking for Production-Ready LLM Deployments
+  big_rock:
+    - Eval Hub
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-856
+  title: Integrate Docling as a backend provider for File Processor API in Llama Stack
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+    - tech-reviewed
+- id: RHAIRFE-911
+  title: Chat Persistence for Gen AI Studio
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-912
+  title: Configuration Persistence for Gen AI Studio
+  big_rock:
+    - Gen AI Studio
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-913
+  title: Multimodal Support in Gen AI Studio Playground
+  big_rock:
+    - Gen AI Studio
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-928
+  title: Downstream Llama Stack inference performance must not regress across releases
+  big_rock:
+    - BYO Agent
+  labels:
+    - strat-creator-3.5
+- id: RHAIRFE-940
+  title: '[TP] Batch Inference API - MaaS'
+  big_rock:
+    - MaaS
+  labels:
+    - strat-creator-3.5
+- id: RHAIRFE-976
+  title: Security guide for Llamastack
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5

@@ -1,0 +1,72 @@
+# Engineering 3.5 — Batch 5 of 10
+# 10 RFEs
+test_rfes:
+- id: RHAIRFE-1237
+  title: '[DP] RHAII Basic Observability for xKS (Metrics Documentation & Reference Dashboards)'
+  big_rock:
+    - llm-d
+  labels:
+    - strat-creator-3.5
+- id: RHAIRFE-1239
+  title: Seamless Model Registration from Catalog to Registry
+  big_rock:
+    - AI Hub
+  labels:
+    - strat-creator-3.5
+- id: RHAIRFE-1273
+  title: Add support for AWS Security Token Service (STS) for AWS Bedrock inference provider
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1293
+  title: Display and update AI Asset provenance
+  big_rock:
+    - AI Hub
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1313
+  title: 'Enable browsing, searching, and discovering registered agents in the UI (Agent Hub)'
+  big_rock:
+    - BYO Agent
+  labels:
+    - strat-creator-3.5
+- id: RHAIRFE-1331
+  title: 'Enable remote::gemini provider in Llama Stack [3.4]'
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1332
+  title: 'Enable remote::anthropic provider in Llama stack [3.4]'
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1351
+  title: '[TP] Productize & Downstream the Agent Operator'
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1391
+  title: Decouple Guardrail Enforcement from Inference Path via Direct NeMo Guardrails Integration
+  big_rock:
+    - BYO Agent
+    - AI Safety
+    - Gen AI Studio
+  labels:
+    - strat-creator-3.5
+    - tech-reviewed
+- id: RHAIRFE-1428
+  title: Validated Defaults for Tool Calling Configuration (Stage 1)
+  big_rock:
+    - Tool Calling
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5

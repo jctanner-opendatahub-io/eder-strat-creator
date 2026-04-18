@@ -1,0 +1,73 @@
+# Engineering 3.5 — Batch 9 of 10
+# 10 RFEs
+test_rfes:
+- id: RHAIRFE-1639
+  title: Model Type and Capability Metadata Schema with API Filtering
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1640
+  title: AI Hub Model Catalog and Registry Type and Capability Display
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1641
+  title: Gen AI Studio Playground Context-Aware Model Selector Filtering with Incompatibility Warning
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1642
+  title: Gen AI Studio Playground Model Selector Inline Capability Tags
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1643
+  title: MCP Server Registration and Management UI in RHOAI
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1644
+  title: Virtual MCP Server Creation and Management in RHOAI
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1645
+  title: Promote MCP Endpoints to Gen AI Studio from RHOAI Console
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1646
+  title: Surface MCP Endpoints in AI Asset Endpoints View
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1651
+  title: Surface Guardrails and Guardrail Templates in Gen AI Studio AI Assets
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1652
+  title: Consolidate Prompts into Gen AI Studio AI Assets Hub
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5

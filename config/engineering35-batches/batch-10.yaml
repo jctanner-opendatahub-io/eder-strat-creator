@@ -1,0 +1,52 @@
+# Engineering 3.5 — Batch 10 of 10
+# 7 RFEs
+test_rfes:
+- id: RHAIRFE-1712
+  title: 'Public Skills Registry: Curated AI Skills Distribution for Agentic Workflows'
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1713
+  title: 'In-Cluster Skills Registry: Self-Hosted AI Skills Management for Disconnected and Regulated Environments'
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1779
+  title: LlamaStack Support for OpenAI Codex Agent SDK
+  big_rock:
+    - Tool Calling
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1917
+  title: Support Google Interactions API as a front-end protocol in Llama Stack
+  big_rock:
+    - BYO Agent
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1927
+  title: AI Security Insights for Red Hat AI Model Catalog
+  big_rock:
+    - AI Hub
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1930
+  title: Filter and search model catalog by tool-calling capability
+  big_rock:
+    - Tool Calling
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
+- id: RHAIRFE-1931
+  title: Surface tool-calling support levels and limitations in model cards and docs
+  big_rock:
+    - Tool Calling
+  labels:
+    - rfe-creator-autofix-rubric-pass
+    - strat-creator-3.5
