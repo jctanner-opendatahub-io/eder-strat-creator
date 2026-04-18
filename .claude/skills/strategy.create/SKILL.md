@@ -144,13 +144,17 @@ Look for a link with type **"Cloners"** pointing to a RHAISTRAT issue. Only Clon
 
 The STRAT was already cloned from the RFE in Jira. Import its content instead of creating a new stub. Skip Step 3 (Jira clone) for this RFE.
 
+**Multiple Cloners links**: An RFE may have more than one RHAISTRAT linked. Filter out any with status **Closed**, **Resolved**, **In Progress**, or **Review** — these are already being worked on or completed and must not be touched. Import only RHAISTRAT issues in early states (e.g., New, Open). If all linked STRATs are filtered out, treat this RFE as Path B (create new).
+
 1. Fetch the RHAISTRAT issue from Jira:
 
 ```bash
 python3 scripts/fetch_issue.py RHAISTRAT-NNNN --fields summary,description,priority,status --markdown
 ```
 
-2. Write the file to `artifacts/strat-tasks/RHAISTRAT-NNNN.md` (use the Jira key as filename since it's a real ticket). Do NOT modify, reformat, or restructure any existing text from the RHAISTRAT — preserve it character-for-character and append the pipeline sections:
+2. Save the raw RHAISTRAT content as a frozen snapshot to `artifacts/strat-originals/RHAISTRAT-NNNN.md` — same as Step 4 does for RFEs. This preserves the original state before any pipeline processing.
+
+3. Write the file to `artifacts/strat-tasks/RHAISTRAT-NNNN.md` (use the Jira key as filename since it's a real ticket). Do NOT modify, reformat, or restructure any existing text from the RHAISTRAT — preserve it character-for-character and append the pipeline sections:
 
 ```markdown
 ## Business Need (from RFE)
@@ -168,7 +172,7 @@ python3 scripts/fetch_issue.py RHAISTRAT-NNNN --fields summary,description,prior
 <!-- After review: address findings below, then remove the needs_attention label from Jira. -->
 ```
 
-3. Set frontmatter:
+4. Set frontmatter:
 
 ```bash
 python3 scripts/frontmatter.py set artifacts/strat-tasks/RHAISTRAT-NNNN.md \
@@ -180,7 +184,7 @@ python3 scripts/frontmatter.py set artifacts/strat-tasks/RHAISTRAT-NNNN.md \
     status=Draft
 ```
 
-4. Print `[IMPORT] RHAISTRAT-NNNN imported (cloned from RHAIRFE-NNNN)` for each imported STRAT.
+5. Print `[IMPORT] RHAISTRAT-NNNN imported (cloned from RHAIRFE-NNNN)` for each imported STRAT.
 
 ### Path B: No Cloners link (no existing STRAT — create new)
 

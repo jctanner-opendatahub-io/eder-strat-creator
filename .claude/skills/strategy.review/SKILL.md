@@ -11,6 +11,7 @@ You are a strategy review orchestrator. Your job is to score and review the stra
 
 If `--dry-run` is in `$ARGUMENTS`, skip ALL external writes:
 - Do NOT write or update any Jira issues
+- Do NOT post review comments to Jira — save them to `artifacts/strat-reviews/{id}-review-comment.md` instead
 - DO still read from Jira and local artifacts (reads are safe)
 - DO still create local review files in `artifacts/strat-reviews/`
 
@@ -155,6 +156,56 @@ python3 scripts/frontmatter.py set artifacts/strat-reviews/<id>-review.md \
 **Important:** The `recommendation` field is NEVER changed by prose reviewers. It comes from the numeric scores only. Prose reviewers set their own `reviewers.*` verdicts for informational purposes — these do NOT affect the gate decision.
 
 **Preserve disagreements.** If the feasibility reviewer says "this is fine" but the scope reviewer says "this is too big," report both views. Do not average or harmonize.
+
+## Step 7a: Post Review Summary to Jira
+
+For each reviewed strategy, compose a review summary comment and post it to the RHAISTRAT issue (or save to file in dry-run mode).
+
+Read the review file frontmatter to get scores and recommendation:
+
+```bash
+python3 scripts/frontmatter.py read artifacts/strat-reviews/{id}-review.md
+```
+
+Compose the comment in markdown using this format:
+
+```markdown
+*[Strat Creator]* Strategy Review — {VERDICT} (Score: {total}/8)
+
+| Criterion | Score | Status |
+|-----------|-------|--------|
+| Feasibility | {F}/2 | {✓ if 2, ⚠ if 1, ✗ if 0} |
+| Testability | {T}/2 | {✓ if 2, ⚠ if 1, ✗ if 0} |
+| Scope | {S}/2 | {✓ if 2, ⚠ if 1, ✗ if 0} |
+| Architecture | {A}/2 | {✓ if 2, ⚠ if 1, ✗ if 0} |
+
+{For each dimension scored < 2, one sentence summarizing the issue from the prose review.}
+
+**Action:** {verdict-specific guidance}
+```
+
+Action text by verdict:
+- **APPROVE**: "No action needed — strategy passed quality review."
+- **REVISE**: "Edit the strategy to address flagged issues, then remove the `needs-attention` label. The pipeline will re-evaluate automatically."
+- **REJECT**: "This strategy has fundamental problems. Consider revisiting the source RFE or re-running `/strategy.refine` with different constraints."
+
+**Posting:**
+
+Save the composed markdown to a temp file, then post:
+
+```bash
+python3 -c "
+import sys; sys.path.insert(0, 'scripts')
+from jira_utils import add_comment, markdown_to_adf
+import os
+comment_md = open(sys.argv[1]).read()
+add_comment(os.environ['JIRA_SERVER'], os.environ['JIRA_USER'],
+            os.environ['JIRA_TOKEN'], sys.argv[2], markdown_to_adf(comment_md))
+" /tmp/strat-review-comment-{KEY}.md RHAISTRAT-NNNN
+```
+
+- **Dry-run mode**: Write the comment markdown to `artifacts/strat-reviews/{id}-review-comment.md` instead. Print `[DRY RUN] Review comment saved to artifacts/strat-reviews/{id}-review-comment.md`.
+- **Jira credentials unavailable**: Save to file (same as dry-run) and notify the user.
 
 ## Step 8: Advise the User
 
