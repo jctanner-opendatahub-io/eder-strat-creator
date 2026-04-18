@@ -224,7 +224,6 @@ def label_css_class(label):
     cat = label_category(label)
     return {
         "provenance": "label-provenance",
-        "stage": "label-stage",
         "gate": "label-gate",
         "escalation": "label-escalation",
         "exclusion": "label-escalation",
@@ -712,8 +711,8 @@ graph LR
             F3 --> F4[Effort estimate\\n& risks]
         end
 
-        E -->|"+strat-creator-auto-created\\n+strat-creator-draft"| F1
-        F4 -->|"+strat-creator-auto-refined\\ndraft &#8594; strat-creator-refined"| G{{{{refined}}}}
+        E -->|"+auto-created"| F1
+        F4 -->|"+auto-refined"| G{{{{refined}}}}
 
         subgraph SV["strategy.review"]
             R1[feasibility]
@@ -730,9 +729,9 @@ graph LR
 
         G --> R1 & R2 & R3 & R4
         CON --> Q{{{{&#8805;6/8\\nno zeros?}}}}
-        Q -->|"APPROVE\\n+approved +review-pass"| I[strategy.submit]
+        Q -->|"APPROVE\\n+rubric-pass"| I[strategy.submit]
         I --> KO["Kick off Phase 3"]
-        Q -->|"REVISE / SPLIT / REJECT\\n+needs-attention"| P["Human review"]
+        Q -->|"REVISE / REJECT\\n+needs-attention"| P["Human review"]
         P -->|"Human fixes &\\nremoves needs-attention"| G
     end
 
@@ -783,12 +782,8 @@ graph LR
     <tr><td><span class="label-badge label-provenance">strat-creator-auto-created</span></td><td>Provenance</td><td>strategy.create generates the RHAISTRAT ticket</td></tr>
     <tr><td><span class="label-badge label-provenance">strat-creator-auto-refined</span></td><td>Provenance</td><td>strategy.refine enriches with technical approach</td></tr>
     <tr><td><span class="label-badge label-provenance">strat-creator-auto-revised</span></td><td>Provenance</td><td>strategy.revise modifies content after review feedback</td></tr>
-    <tr><td><span class="label-badge label-stage">strat-creator-draft</span></td><td>Stage</td><td>Strategy stub exists, awaiting refinement</td></tr>
-    <tr><td><span class="label-badge label-stage">strat-creator-refined</span></td><td>Stage</td><td>Full technical approach, dependencies, NFRs added</td></tr>
-    <tr><td><span class="label-badge label-stage">strat-creator-reviewed</span></td><td>Stage</td><td>Scored and reviewed by 4 independent reviewers</td></tr>
-    <tr><td><span class="label-badge label-stage">strat-creator-approved</span></td><td>Stage</td><td>Score &#8805;6/8 with no zeros &#8212; auto-approved</td></tr>
-    <tr><td><span class="label-badge label-gate">strat-creator-review-pass</span></td><td>Gate</td><td>Approved; excluded from re-processing in future runs</td></tr>
-    <tr><td><span class="label-badge label-escalation">strat-creator-needs-attention</span></td><td>Escalation</td><td>REVISE / SPLIT / REJECT &#8212; human review required</td></tr>
+    <tr><td><span class="label-badge label-gate">strat-creator-rubric-pass</span></td><td>Gate</td><td>Approved; excluded from re-processing in future runs</td></tr>
+    <tr><td><span class="label-badge label-escalation">strat-creator-needs-attention</span></td><td>Escalation</td><td>REVISE / REJECT &#8212; human review required</td></tr>
     <tr><td><span class="label-badge label-escalation">strat-creator-ignore</span></td><td>Exclusion</td><td>Permanent exclusion from pipeline (human-set only)</td></tr>
     </tbody>
     </table>
