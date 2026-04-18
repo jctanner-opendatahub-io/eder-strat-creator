@@ -253,12 +253,29 @@ def load_run_artifacts(run_dir):
             except Exception as e:
                 print(f"  Warning: {path}: {e}", file=sys.stderr)
 
-    return tasks, reviews, review_comments
+    # Load skipped RFEs
+    skipped = []
+    skipped_path = os.path.join(run_dir, "strat-skipped.md")
+    if os.path.exists(skipped_path):
+        with open(skipped_path, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if line.startswith("|") and not line.startswith("| RFE") and not line.startswith("|--"):
+                    cols = [c.strip() for c in line.split("|")[1:-1]]
+                    if len(cols) >= 4:
+                        skipped.append({
+                            "rfe_key": cols[0],
+                            "title": cols[1],
+                            "labels": cols[2],
+                            "missing": cols[3],
+                        })
+
+    return tasks, reviews, review_comments, skipped
 
 
 def extract_run_stats(run_dir, config):
     """Extract aggregate stats and per-strategy detail from a run."""
-    tasks, reviews, review_comments = load_run_artifacts(run_dir)
+    tasks, reviews, review_comments, skipped = load_run_artifacts(run_dir)
     if not tasks:
         return None
 
@@ -377,6 +394,7 @@ def extract_run_stats(run_dir, config):
         "strongest_dim": strongest_dim,
         "strongest_rate": dim_stats[strongest_dim]["rate"],
         "strategies": strategies,
+        "skipped": skipped,
     }
 
 
@@ -842,42 +860,49 @@ graph LR
         C --> D[rfe.submit]
     end
 
-    D -->|"Automatically\\njob trigger"| E
+    D -->|"Auto job\\ntrigger"| GATE
 
     subgraph P2["Phase 2: Strategy Refinement"]
-        E[strategy.create]
+        GATE{{{{Label gate\\nstrat-creator-3.5 +\\nrfe-creator-autofix-rubric-pass\\nor tech-reviewed}}}}
+        GATE -->|"Fail"| SKIP["Skipped RFEs\\nstrat-skipped.md"]
+        GATE -->|"Pass"| E1
 
-        subgraph SR["strategy.refine"]
-            F1[Fetch arch context] --> F2[Technical approach]
-            F2 --> F3[Dependencies &\\ncomponents]
-            F3 --> F4[Effort estimate\\n& risks]
+        subgraph SC["strategy.create"]
+            E1["Fetch RFE\\nfrom Jira"] --> E2["Check existing\\nSTRATs via Cloners"]
+            E2 --> E3["Save originals\\n& fetch comments"]
+            E3 --> E4["Create strategy\\nstubs"]
         end
 
-        E -->|"+auto-created"| F1
-        F4 -->|"+auto-refined"| G{{{{refined}}}}
+        E4 -->|"+strat-creator-auto-created"| F0
+
+        subgraph SR["strategy.refine"]
+            F0["Fetch arch\\ncontext"] --> F1["HOW context\\n&#8226; removed-context\\n&#8226; Staff Eng Input"]
+            F1 --> F2["Technical approach\\n& components"]
+            F2 --> F3["Dependencies,\\nNFRs & effort"]
+        end
+
+        F3 -->|"+strat-creator-auto-refined"| G{{{{refined}}}}
 
         subgraph SV["strategy.review"]
             R1[feasibility]
             R2[testability]
             R3[scope]
             R4[architecture]
-            SC1["assess-strat\\nscorer agent\\nF/T/S/A 0-2"]
-            SCRIPTS["parse_results.py &#8594; apply_scores.py\\n(deterministic verdicts)"]
-            CON[Write review file\\nscores + prose]
-            R1 & R2 & R3 & R4 --> SC1
-            SC1 --> SCRIPTS
-            SCRIPTS --> CON
+            R1 & R2 & R3 & R4 --> SC1["assess-strat\\nscorer agents\\nF/T/S/A 0-2"]
+            SC1 --> SCRIPTS["parse_results.py &#8594; apply_scores.py\\n(deterministic verdicts)"]
+            SCRIPTS --> CON["Write review\\nscores + prose"]
+            CON --> JIRA["Attach review to Jira\\n& post summary\\nas comment"]
         end
 
         G --> R1 & R2 & R3 & R4
-        CON --> Q{{{{&#8805;6/8\\nno zeros?}}}}
-        Q -->|"APPROVE\\n+rubric-pass"| I[strategy.submit]
-        I --> KO["Kick off Phase 3"]
-        Q -->|"REVISE / REJECT\\n+needs-attention"| P["Human review"]
-        P -->|"Human fixes &\\nremoves needs-attention"| G
+
+        JIRA --> Q{{{{&#8805;6/8\\nno zeros?}}}}
+        Q -->|"APPROVE\\n+strat-creator-rubric-pass"| PA["Jira &#8594;\\nPending Approval"]
+        Q -->|"REVISE / REJECT\\n+strat-creator-needs-attention"| HR["Human review\\nstakeholder feedback\\non Jira"]
+        HR -->|"Fixes &\\nremoves label"| G
     end
 
-    KO -->|"PM adds\\nstrat-prioritized label"| FR
+    PA -->|"PM adds\\nstrat-prioritized"| FR
 
     subgraph P3["Phase 3: Feature Dev"]
         FR[feature.ready] --> J[Feature Ready]
@@ -890,11 +915,16 @@ graph LR
     style B fill:#2d6a2d,color:#fff
     style C fill:#2d6a2d,color:#fff
     style D fill:#2d6a2d,color:#fff
-    style E fill:#c77d1a,color:#fff
+    style GATE fill:#1f3a5f,color:#58a6ff,stroke:#58a6ff
+    style SKIP fill:#3d1f00,color:#d29922,stroke:#d29922
+    style E1 fill:#c77d1a,color:#fff
+    style E2 fill:#c77d1a,color:#fff
+    style E3 fill:#c77d1a,color:#fff
+    style E4 fill:#c77d1a,color:#fff
+    style F0 fill:#c77d1a,color:#fff
     style F1 fill:#c77d1a,color:#fff
     style F2 fill:#c77d1a,color:#fff
     style F3 fill:#c77d1a,color:#fff
-    style F4 fill:#c77d1a,color:#fff
     style SC1 fill:#c77d1a,color:#fff
     style SCRIPTS fill:#6e40c9,color:#fff
     style R1 fill:#c77d1a,color:#fff
@@ -902,11 +932,11 @@ graph LR
     style R3 fill:#c77d1a,color:#fff
     style R4 fill:#c77d1a,color:#fff
     style CON fill:#c77d1a,color:#fff
+    style JIRA fill:#1f6feb,color:#fff,stroke:#58a6ff
     style G fill:#1f3a5f,color:#58a6ff,stroke:#58a6ff
     style Q fill:#1f3a5f,color:#58a6ff,stroke:#58a6ff
-    style P fill:#3d1f00,color:#f0883e,stroke:#f0883e
-    style I fill:#555,color:#fff
-    style KO fill:#1f6feb,color:#fff,stroke:#58a6ff
+    style PA fill:#2d6a2d,color:#fff
+    style HR fill:#3d1f00,color:#f0883e,stroke:#f0883e
     style FR fill:#555,color:#fff
     style J fill:#555,color:#fff
     style K fill:#555,color:#fff
@@ -1419,6 +1449,20 @@ function renderRunDetail(idx) {{
         </td></tr>`;
     }});
     html += '</tbody></table>';
+
+    // Skipped RFEs section
+    if (run.skipped && run.skipped.length > 0) {{
+        html += `<div style="margin-top:24px;padding:16px;background:#1c1917;border:1px solid #d29922;border-radius:8px;">
+            <h3 style="color:#d29922;margin:0 0 12px;">Skipped RFEs (${{run.skipped.length}})</h3>
+            <p style="color:#8b949e;margin-bottom:12px;">Missing required labels (strat-creator-3.5 + rfe-creator-autofix-rubric-pass or tech-reviewed)</p>
+            <table><thead><tr>
+                <th>RFE Key</th><th>Title</th><th>Current Labels</th><th style="color:#f85149">Missing</th>
+            </tr></thead><tbody>`;
+        run.skipped.forEach(s => {{
+            html += `<tr><td>${{s.rfe_key}}</td><td>${{s.title}}</td><td>${{s.labels}}</td><td style="color:#f85149">${{s.missing}}</td></tr>`;
+        }});
+        html += '</tbody></table></div>';
+    }}
 
     el.innerHTML = html;
 }}

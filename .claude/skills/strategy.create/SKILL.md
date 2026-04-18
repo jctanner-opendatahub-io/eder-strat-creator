@@ -59,6 +59,29 @@ The script outputs JSON to stdout with the description already converted to mark
 
 The user can select specific ones or "all."
 
+## Step 2a: Label Gate
+
+For each selected RFE, fetch its labels from Jira (the `labels` field is already included in the Step 1 fetch). Check that the RFE has **both**:
+
+1. `strat-creator-3.5`
+2. At least one of: `rfe-creator-autofix-rubric-pass` or `tech-reviewed`
+
+If an RFE fails the label gate, **skip it** — do not create a strategy stub. Instead, record it in `artifacts/strat-skipped.md`:
+
+```markdown
+# Skipped RFEs
+
+RFEs that were not processed due to missing required labels.
+
+| RFE Key | Title | Labels | Missing |
+|---------|-------|--------|---------|
+| RHAIRFE-NNNN | ... | label1, label2 | rfe-creator-autofix-rubric-pass or tech-reviewed |
+```
+
+If the file already exists, append rows (do not overwrite previous entries). Print `[SKIPPED] RHAIRFE-NNNN — missing required labels: <list>` for each skipped RFE.
+
+If **all** selected RFEs are skipped, stop and tell the user none of the provided RFEs have the required labels.
+
 ## Step 3: Clone in Jira (if MCP available)
 
 For each selected RFE, use Jira's clone operation to clone the RHAIRFE into the RHAISTRAT project. This ensures:
