@@ -11,7 +11,7 @@ artifacts (which use frontmatter for pipeline gate decisions).
 
 The gate logic:
     APPROVE → needs_attention=false → auto-approved, done
-    REVISE/SPLIT/REJECT → needs_attention=true → human review required
+    REVISE/REJECT → needs_attention=true → human review required
 
 Usage:
     python3 scripts/apply_scores.py /tmp/strat-assess/review/scores.csv
@@ -82,8 +82,6 @@ def set_frontmatter(review_path, strat_id, verdict, needs_attention, scores):
     # Default reviewer verdicts based on score verdict.
     # Prose reviewers overwrite these in a later step.
     reviewer_default = verdict.lower()
-    if reviewer_default == "split":
-        reviewer_default = "revise"  # schema enum doesn't include "split"
 
     args = [
         sys.executable, FRONTMATTER_SCRIPT, "set", review_path,

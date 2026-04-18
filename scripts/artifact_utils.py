@@ -81,7 +81,7 @@ SCHEMAS = {
         "recommendation": {
             "type": "string",
             "required": True,
-            "enum": ["submit", "revise", "split", "reject", "autorevise_reject"],
+            "enum": ["submit", "revise", "reject", "autorevise_reject"],
         },
         "feasibility": {
             "type": "string",
@@ -179,7 +179,7 @@ SCHEMAS = {
         "recommendation": {
             "type": "string",
             "required": True,
-            "enum": ["approve", "revise", "split", "reject"],
+            "enum": ["approve", "revise", "reject"],
         },
         "needs_attention": {
             "type": "bool",

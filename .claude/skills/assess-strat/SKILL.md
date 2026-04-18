@@ -118,7 +118,7 @@ Single strategy — wrap agent output with a header:
 ```
 
 Batch — after Phase 3, present the summary analysis from the CSV to the user. Include:
-- Total assessed, verdict distribution (approve/revise/split/reject)
+- Total assessed, verdict distribution (approve/revise/reject)
 - Score distribution
 - Criteria averages and zero-score counts
 - What-if analysis (e.g., "if Testability 0→1, N more would approve")

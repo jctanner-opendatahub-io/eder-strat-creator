@@ -1,6 +1,6 @@
 ---
 name: strategy-scope-review
-description: Reviews strategy features for scope — is each strategy right-sized, does the effort match the scope, should anything be split?
+description: Reviews strategy features for scope — is each strategy right-sized, does the effort match the scope?
 context: fork
 allowed-tools: Read, Grep, Glob
 model: opus
@@ -19,7 +19,7 @@ If `artifacts/strat-reviews/` exists and contains review files for the strategie
 
 For each strategy:
 
-1. **Is this right-sized?** A strategy should map to a deliverable feature. If it's really 3 features bundled together, it needs splitting. If it's really a bug fix or config change, it's too small.
+1. **Is this right-sized?** A strategy should map to a deliverable feature. If it bundles 3+ independent features, flag it as a scope problem — this should have been caught at the RFE level. If it's really a bug fix or config change, it's too small.
 2. **Does the effort match the scope?** If the strategy says "M" but lists 5 components across 3 teams with external dependencies, that's an L or XL.
 3. **Is scope clearly bounded?** Are "in scope" and "out of scope" explicit? Or could this grow unbounded during implementation?
 4. **Does it deliver a complete capability?** Will the user actually be able to do something useful when this ships? Or is it a partial delivery that needs follow-on work to be valuable?
@@ -39,11 +39,11 @@ For each strategy:
 
 ```
 ### STRAT-NNN: <title>
-**Scope assessment**: <right-sized / too large — split suggested / too small / unbounded>
+**Scope assessment**: <right-sized / too large / too small / unbounded>
 **Effort vs scope**: <matched / underestimated / overestimated>
 **RFE coverage**: <full / partial — gaps listed / exceeds RFE>
 **Scope risks**: <list or "none identified">
-**Recommendation**: <approve / split into N strategies / tighten scope / expand to deliver RFE>
+**Recommendation**: <approve / revise scope / expand to deliver RFE>
 ```
 
-If you recommend splitting, suggest concrete boundaries for each resulting strategy.
+If scope is too large, explain what's bundled and why it's a problem.

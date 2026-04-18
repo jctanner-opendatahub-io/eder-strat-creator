@@ -86,7 +86,6 @@ python3 .context/assess-strat/scripts/summarize_run.py /tmp/strat-assess/review/
 **Do NOT manually extract scores, compute verdicts, or set frontmatter.** The scripts handle this deterministically. The verdict rules are:
 ```
 APPROVE:  total >= 6  AND  no zeros       → needs_attention=false
-SPLIT:    scope = 0   AND  others >= 1    → needs_attention=true
 REVISE:   total >= 3  AND  ≤1 zero        → needs_attention=true
 REJECT:   total < 3   OR   2+ zeros       → needs_attention=true
 ```
@@ -162,7 +161,6 @@ python3 scripts/frontmatter.py set artifacts/strat-reviews/<id>-review.md \
 Based on the results:
 - **All approved** (`needs_attention=false`): Tell the user strategies are ready for `/strat.prioritize`.
 - **Some need revision** (`needs_attention=true`, verdict=REVISE): List specific issues by dimension. Tell the user to edit the strategy files, remove `needs-attention`, and re-run `/strategy.review`.
-- **Split needed** (`needs_attention=true`, verdict=SPLIT): The strategy bundles too many features. Tell the user to decompose it into focused strategies.
 - **Fundamental problems** (`needs_attention=true`, verdict=REJECT): Recommend revisiting the RFE or re-running `/strategy.refine` with different constraints.
 
 $ARGUMENTS
