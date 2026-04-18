@@ -193,9 +193,10 @@ def load_yaml_config(path):
 
 
 def load_run_artifacts(run_dir):
-    """Load tasks and reviews from a single run directory."""
+    """Load tasks, reviews, and review comments from a single run directory."""
     tasks = {}
     reviews = {}
+    review_comments = {}
 
     for pattern in ["STRAT-*.md", "RHAISTRAT-*.md"]:
         for path in sorted(glob.glob(os.path.join(run_dir, "strat-tasks", pattern))):
@@ -208,6 +209,8 @@ def load_run_artifacts(run_dir):
 
     for pattern in ["STRAT-*-review.md", "RHAISTRAT-*-review.md"]:
         for path in sorted(glob.glob(os.path.join(run_dir, "strat-reviews", pattern))):
+            if path.endswith("-review-comment.md"):
+                continue
             try:
                 meta, body = read_frontmatter(path)
                 strat_id = meta.get("strat_id", Path(path).stem.replace("-review", ""))
@@ -215,12 +218,22 @@ def load_run_artifacts(run_dir):
             except Exception as e:
                 print(f"  Warning: {path}: {e}", file=sys.stderr)
 
-    return tasks, reviews
+    for pattern in ["STRAT-*-review-comment.md", "RHAISTRAT-*-review-comment.md"]:
+        for path in sorted(glob.glob(os.path.join(run_dir, "strat-reviews", pattern))):
+            try:
+                with open(path, encoding="utf-8") as f:
+                    body = f.read()
+                strat_id = Path(path).stem.replace("-review-comment", "")
+                review_comments[strat_id] = body
+            except Exception as e:
+                print(f"  Warning: {path}: {e}", file=sys.stderr)
+
+    return tasks, reviews, review_comments
 
 
 def extract_run_stats(run_dir, config):
     """Extract aggregate stats and per-strategy detail from a run."""
-    tasks, reviews = load_run_artifacts(run_dir)
+    tasks, reviews, review_comments = load_run_artifacts(run_dir)
     if not tasks:
         return None
 
@@ -257,6 +270,7 @@ def extract_run_stats(run_dir, config):
                 "total": scores.get("total"),
             } if scores else None,
             "strategy_html": md_to_html(task.get("body", "")),
+            "comment_html": md_to_html(review_comments.get(strat_id, "")),
             "review_html": md_to_html(review.get("body", "")),
             "labels": compute_strat_labels(
                 meta.get("status", ""),
@@ -1057,11 +1071,13 @@ function renderExecutiveSummary() {{
                 <h2>${{s.strat_id}}: ${{s.title}}</h2>
                 <div class="label-bar">${{renderLabelBadges(s.labels || [])}}</div>
                 <div class="detail-tabs">
-                    <div class="detail-tab active" onclick="switchExecTab(${{i}},'review')">Review</div>
-                    <div class="detail-tab" onclick="switchExecTab(${{i}},'strategy')">Strategy</div>
+                    <div class="detail-tab active" onclick="switchExecTab(${{i}},'strategy')">Strategy</div>
+                    <div class="detail-tab" onclick="switchExecTab(${{i}},'comment')">Review Summary</div>
+                    <div class="detail-tab" onclick="switchExecTab(${{i}},'review')">Detailed Review</div>
                 </div>
-                <div class="tab-content active" id="etab-${{i}}-review">${{s.review_html}}</div>
-                <div class="tab-content" id="etab-${{i}}-strategy">${{s.strategy_html}}</div>
+                <div class="tab-content active" id="etab-${{i}}-strategy">${{s.strategy_html}}</div>
+                <div class="tab-content" id="etab-${{i}}-comment">${{s.comment_html || '<em>No review comment available</em>'}}</div>
+                <div class="tab-content" id="etab-${{i}}-review">${{s.review_html}}</div>
             </div>
         </td></tr>`;
     }});
@@ -1362,11 +1378,13 @@ function renderRunDetail(idx) {{
                 <h2>${{s.strat_id}}: ${{s.title}}</h2>
                 <div class="label-bar">${{renderLabelBadges(s.labels || [])}}</div>
                 <div class="detail-tabs">
-                    <div class="detail-tab active" onclick="switchRunTab(${{idx}},${{i}},'review')">Review</div>
-                    <div class="detail-tab" onclick="switchRunTab(${{idx}},${{i}},'strategy')">Strategy</div>
+                    <div class="detail-tab active" onclick="switchRunTab(${{idx}},${{i}},'strategy')">Strategy</div>
+                    <div class="detail-tab" onclick="switchRunTab(${{idx}},${{i}},'comment')">Review Summary</div>
+                    <div class="detail-tab" onclick="switchRunTab(${{idx}},${{i}},'review')">Detailed Review</div>
                 </div>
-                <div class="tab-content active" id="rtab-${{idx}}-${{i}}-review">${{s.review_html}}</div>
-                <div class="tab-content" id="rtab-${{idx}}-${{i}}-strategy">${{s.strategy_html}}</div>
+                <div class="tab-content active" id="rtab-${{idx}}-${{i}}-strategy">${{s.strategy_html}}</div>
+                <div class="tab-content" id="rtab-${{idx}}-${{i}}-comment">${{s.comment_html || '<em>No review comment available</em>'}}</div>
+                <div class="tab-content" id="rtab-${{idx}}-${{i}}-review">${{s.review_html}}</div>
             </div>
         </td></tr>`;
     }});

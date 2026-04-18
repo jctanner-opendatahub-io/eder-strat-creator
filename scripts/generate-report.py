@@ -32,9 +32,10 @@ def load_yaml_config(path):
     return result
 
 def load_artifacts(artifacts_dir):
-    """Load all strategy tasks and reviews."""
+    """Load all strategy tasks, reviews, and review comments."""
     tasks = {}
     reviews = {}
+    review_comments = {}
 
     for pattern in ["STRAT-*.md", "RHAISTRAT-*.md"]:
         for path in sorted(glob.glob(os.path.join(artifacts_dir, "strat-tasks", pattern))):
@@ -47,6 +48,8 @@ def load_artifacts(artifacts_dir):
 
     for pattern in ["STRAT-*-review.md", "RHAISTRAT-*-review.md"]:
         for path in sorted(glob.glob(os.path.join(artifacts_dir, "strat-reviews", pattern))):
+            if path.endswith("-review-comment.md"):
+                continue
             try:
                 meta, body = read_frontmatter(path)
                 strat_id = meta.get("strat_id", Path(path).stem.replace("-review", ""))
@@ -54,7 +57,17 @@ def load_artifacts(artifacts_dir):
             except Exception as e:
                 print(f"Warning: failed to read {path}: {e}", file=sys.stderr)
 
-    return tasks, reviews
+    for pattern in ["STRAT-*-review-comment.md", "RHAISTRAT-*-review-comment.md"]:
+        for path in sorted(glob.glob(os.path.join(artifacts_dir, "strat-reviews", pattern))):
+            try:
+                with open(path, encoding="utf-8") as f:
+                    body = f.read()
+                strat_id = Path(path).stem.replace("-review-comment", "")
+                review_comments[strat_id] = body
+            except Exception as e:
+                print(f"Warning: failed to read {path}: {e}", file=sys.stderr)
+
+    return tasks, reviews, review_comments
 
 def md_to_html(md_text):
     """Minimal markdown to HTML conversion for rendering in report."""
@@ -245,7 +258,7 @@ def health_color(rate):
         return "#d29922"
     return "#f85149"
 
-def generate_html(tasks, reviews, config, output_path):
+def generate_html(tasks, reviews, review_comments, config, output_path):
     """Generate the full HTML report."""
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
 
@@ -284,6 +297,7 @@ def generate_html(tasks, reviews, config, output_path):
                 "total": scores.get("total"),
             } if scores else None,
             "strategy_body": task.get("body", ""),
+            "comment_body": review_comments.get(strat_id, ""),
             "review_body": review.get("body", ""),
             "labels": compute_strat_labels(
                 meta.get("status", ""),
@@ -824,14 +838,18 @@ graph LR
         <h2>{escape_html(row["strat_id"])}: {escape_html(row["title"])}</h2>
         <div class="label-bar">{render_label_badges(row["labels"])}</div>
         <div class="detail-tabs">
-            <div class="detail-tab active" onclick="switchTab({i}, 'review')">Review</div>
-            <div class="detail-tab" onclick="switchTab({i}, 'strategy')">Strategy</div>
+            <div class="detail-tab active" onclick="switchTab({i}, 'strategy')">Strategy</div>
+            <div class="detail-tab" onclick="switchTab({i}, 'comment')">Review Summary</div>
+            <div class="detail-tab" onclick="switchTab({i}, 'review')">Detailed Review</div>
         </div>
-        <div class="tab-content active" id="tab-{i}-review">
-            {md_to_html(row["review_body"])}
-        </div>
-        <div class="tab-content" id="tab-{i}-strategy">
+        <div class="tab-content active" id="tab-{i}-strategy">
             {md_to_html(row["strategy_body"])}
+        </div>
+        <div class="tab-content" id="tab-{i}-comment">
+            {md_to_html(row["comment_body"]) if row["comment_body"] else "<em>No review comment available</em>"}
+        </div>
+        <div class="tab-content" id="tab-{i}-review">
+            {md_to_html(row["review_body"])}
         </div>
     </div>
 </td></tr>
@@ -989,14 +1007,14 @@ def main():
             print(f"Warning: failed to read config: {e}", file=sys.stderr)
 
     # Load artifacts
-    tasks, reviews = load_artifacts(args.artifacts)
+    tasks, reviews, review_comments = load_artifacts(args.artifacts)
 
     if not tasks:
         print("Error: no strategy artifacts found in", args.artifacts, file=sys.stderr)
         sys.exit(1)
 
-    print(f"Found {len(tasks)} strategies, {len(reviews)} reviews")
-    generate_html(tasks, reviews, config, output_path)
+    print(f"Found {len(tasks)} strategies, {len(reviews)} reviews, {len(review_comments)} review comments")
+    generate_html(tasks, reviews, review_comments, config, output_path)
 
 if __name__ == "__main__":
     main()
