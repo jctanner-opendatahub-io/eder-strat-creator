@@ -782,7 +782,7 @@ tr.clickable {{ cursor: pointer; }}
         <strong style="color:#c9d1d9">Verdict rules:</strong> APPROVE (≥6, no zeros) auto-passes. REVISE, SPLIT, and REJECT get <code style="background:#21262d;padding:2px 6px;border-radius:3px">needs-attention</code> for human review.
         All runs are <strong style="color:#c9d1d9">dry runs</strong> — no data is written to Jira.
         <br>
-        <strong style="color:#c9d1d9">What to expect next:</strong> evidence-based review gates (every finding must cite specific strategy text), additional review dimensions (security, API readiness), and Jira write-back.
+        <strong style="color:#c9d1d9">What to expect next:</strong> Jira integration (write-back of strategies, reviews, and labels) and go-live.
         <br>
         <span style="color:#6e7681">The binary gate is intentional: only APPROVE passes automatically. Everything else requires human review.</span>
     </div>
