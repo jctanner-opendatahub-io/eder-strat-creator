@@ -1039,8 +1039,10 @@ function renderExecutiveSummary() {{
 
     // KPI cards
     const skippedCount = e.skipped ? e.skipped.length : 0;
-    html += `<div class="kpi-grid" style="grid-template-columns: repeat(5, 1fr)">
-        <div class="kpi"><div class="kpi-value" style="color:#58a6ff">${{e.total}}</div><div class="kpi-label">Unique Strategies</div><div class="kpi-detail">Across ${{e.total_runs}} runs</div></div>
+    const totalRfes = e.total + skippedCount;
+    html += `<div class="kpi-grid" style="grid-template-columns: repeat(6, 1fr)">
+        <div class="kpi"><div class="kpi-value" style="color:#f0f6fc">${{totalRfes}}</div><div class="kpi-label">Total RFEs</div><div class="kpi-detail">${{e.total}} strategies + ${{skippedCount}} skipped</div></div>
+        <div class="kpi"><div class="kpi-value" style="color:#58a6ff">${{e.total}}</div><div class="kpi-label">Strategies Created</div><div class="kpi-detail">Across ${{e.total_runs}} runs</div></div>
         <div class="kpi"><div class="kpi-value" style="color:${{heroColor}}">${{rate}}%</div><div class="kpi-label">Approval Rate</div><div class="kpi-detail">${{e.approved}} approved</div></div>
         <div class="kpi"><div class="kpi-value" style="color:${{healthColor(avgScorePct)}}">${{avgScoreHtml}}</div><div class="kpi-label">Avg Score</div><div class="kpi-detail">Threshold: 6/8</div></div>
         <div class="kpi"><div class="kpi-value" style="color:#f85149">${{e.needs_attention}}</div><div class="kpi-label">Needs Attention</div><div class="kpi-detail">${{e.needs_attention === 0 ? 'All clear' : 'Staff engineer review'}}</div></div>
