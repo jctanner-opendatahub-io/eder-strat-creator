@@ -398,6 +398,26 @@ def extract_run_stats(run_dir, config):
     }
 
 
+def load_skipped_file(path):
+    """Parse a strat-skipped.md file into a list of dicts."""
+    skipped = []
+    if not os.path.exists(path):
+        return skipped
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith("|") and not line.startswith("| RFE") and not line.startswith("|--"):
+                cols = [c.strip() for c in line.split("|")[1:-1]]
+                if len(cols) >= 4:
+                    skipped.append({
+                        "rfe_key": cols[0],
+                        "title": cols[1],
+                        "labels": cols[2],
+                        "missing": cols[3],
+                    })
+    return skipped
+
+
 def scan_all_runs(data_dir, config, max_runs=30):
     """Discover all timestamped run directories and extract stats."""
     runs = []
@@ -406,6 +426,13 @@ def scan_all_runs(data_dir, config, max_runs=30):
     current_link = os.path.join(data_dir, "current")
     if os.path.islink(current_link):
         current_target = os.readlink(current_link)
+
+    # Load global strat-skipped.md from repo root (parent of data_dir)
+    global_skipped = load_skipped_file(
+        os.path.join(os.path.dirname(data_dir), "strat-skipped.md")
+    )
+    if global_skipped:
+        print(f"  Found global strat-skipped.md with {len(global_skipped)} entries")
 
     for entry in sorted(os.listdir(data_dir)):
         entry_path = os.path.join(data_dir, entry)
@@ -422,6 +449,10 @@ def scan_all_runs(data_dir, config, max_runs=30):
         if stats is None:
             print(f"    Skipped (no artifacts)")
             continue
+
+        # Use global skipped data as fallback when run has none
+        if not stats.get("skipped") and global_skipped:
+            stats["skipped"] = global_skipped
 
         stats["run_id"] = entry
         stats["timestamp"] = ts.isoformat()
