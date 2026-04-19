@@ -537,8 +537,21 @@ def compute_executive_summary(runs):
                 skipped_seen[rfe_key] = s
     skipped = sorted(skipped_seen.values(), key=lambda s: s.get("rfe_key", ""))
 
+    # Count unique source RFEs (strategies + skipped, no double-counting)
+    all_rfe_keys = set()
+    for s in strategies:
+        rfe = s.get("source_rfe", "")
+        if rfe:
+            all_rfe_keys.add(rfe)
+    for s in skipped:
+        rfe = s.get("rfe_key", "")
+        if rfe:
+            all_rfe_keys.add(rfe)
+    total_rfes = len(all_rfe_keys)
+
     return {
         "total": total,
+        "total_rfes": total_rfes,
         "reviewed": total_reviewed,
         "approved": approved,
         "revise": revise,
@@ -1039,9 +1052,8 @@ function renderExecutiveSummary() {{
 
     // KPI cards
     const skippedCount = e.skipped ? e.skipped.length : 0;
-    const totalRfes = e.total + skippedCount;
     html += `<div class="kpi-grid" style="grid-template-columns: repeat(6, 1fr)">
-        <div class="kpi"><div class="kpi-value" style="color:#f0f6fc">${{totalRfes}}</div><div class="kpi-label">Total RFEs</div><div class="kpi-detail">${{e.total}} strategies + ${{skippedCount}} skipped</div></div>
+        <div class="kpi"><div class="kpi-value" style="color:#f0f6fc">${{e.total_rfes}}</div><div class="kpi-label">Total RFEs</div><div class="kpi-detail">${{e.total}} strategies + ${{skippedCount}} skipped</div></div>
         <div class="kpi"><div class="kpi-value" style="color:#58a6ff">${{e.total}}</div><div class="kpi-label">Strategies Created</div><div class="kpi-detail">Across ${{e.total_runs}} runs</div></div>
         <div class="kpi"><div class="kpi-value" style="color:${{heroColor}}">${{rate}}%</div><div class="kpi-label">Approval Rate</div><div class="kpi-detail">${{e.approved}} approved</div></div>
         <div class="kpi"><div class="kpi-value" style="color:${{healthColor(avgScorePct)}}">${{avgScoreHtml}}</div><div class="kpi-label">Avg Score</div><div class="kpi-detail">Threshold: 6/8</div></div>
