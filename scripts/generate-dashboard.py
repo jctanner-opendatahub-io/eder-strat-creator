@@ -508,6 +508,15 @@ def compute_executive_summary(runs):
     weakest_dim = min(dimensions, key=lambda d: dim_stats[d]["rate"]) if strategies else "—"
     strongest_dim = max(dimensions, key=lambda d: dim_stats[d]["rate"]) if strategies else "—"
 
+    # Aggregate skipped RFEs — dedup by rfe_key, keeping most recent
+    skipped_seen = {}
+    for run in reversed(runs):
+        for s in run.get("skipped", []):
+            rfe_key = s.get("rfe_key", "")
+            if rfe_key and rfe_key not in skipped_seen:
+                skipped_seen[rfe_key] = s
+    skipped = sorted(skipped_seen.values(), key=lambda s: s.get("rfe_key", ""))
+
     return {
         "total": total,
         "reviewed": total_reviewed,
@@ -524,6 +533,7 @@ def compute_executive_summary(runs):
         "weakest_dim": weakest_dim,
         "strongest_dim": strongest_dim,
         "strategies": strategies,
+        "skipped": skipped,
         "total_runs": len(runs),
     }
 
@@ -1008,11 +1018,13 @@ function renderExecutiveSummary() {{
     </div>`;
 
     // KPI cards
-    html += `<div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr)">
+    const skippedCount = e.skipped ? e.skipped.length : 0;
+    html += `<div class="kpi-grid" style="grid-template-columns: repeat(5, 1fr)">
         <div class="kpi"><div class="kpi-value" style="color:#58a6ff">${{e.total}}</div><div class="kpi-label">Unique Strategies</div><div class="kpi-detail">Across ${{e.total_runs}} runs</div></div>
         <div class="kpi"><div class="kpi-value" style="color:${{heroColor}}">${{rate}}%</div><div class="kpi-label">Approval Rate</div><div class="kpi-detail">${{e.approved}} approved</div></div>
         <div class="kpi"><div class="kpi-value" style="color:${{healthColor(avgScorePct)}}">${{avgScoreHtml}}</div><div class="kpi-label">Avg Score</div><div class="kpi-detail">Threshold: 6/8</div></div>
         <div class="kpi"><div class="kpi-value" style="color:#f85149">${{e.needs_attention}}</div><div class="kpi-label">Needs Attention</div><div class="kpi-detail">${{e.needs_attention === 0 ? 'All clear' : 'Staff engineer review'}}</div></div>
+        <div class="kpi"><div class="kpi-value" style="color:${{skippedCount > 0 ? '#d29922' : '#3fb950'}}">${{skippedCount}}</div><div class="kpi-label">Skipped</div><div class="kpi-detail">${{skippedCount > 0 ? 'Missing required labels' : 'All RFEs processed'}}</div></div>
     </div>`;
 
     // Verdict + Dimensions + Funnel — single 3-column row
@@ -1140,6 +1152,20 @@ function renderExecutiveSummary() {{
         </td></tr>`;
     }});
     html += '</tbody></table></div>';
+
+    // Skipped RFEs section
+    if (e.skipped && e.skipped.length > 0) {{
+        html += `<div style="margin-top:24px;padding:16px;background:#1c1917;border:1px solid #d29922;border-radius:8px;">
+            <h3 style="color:#d29922;margin:0 0 12px;">Skipped RFEs (${{e.skipped.length}})</h3>
+            <p style="color:#8b949e;margin-bottom:12px;">Missing required labels (strat-creator-3.5 + rfe-creator-autofix-rubric-pass or tech-reviewed)</p>
+            <table><thead><tr>
+                <th>RFE Key</th><th>Title</th><th>Current Labels</th><th style="color:#f85149">Missing</th>
+            </tr></thead><tbody>`;
+        e.skipped.forEach(s => {{
+            html += `<tr><td>${{s.rfe_key}}</td><td>${{s.title}}</td><td>${{s.labels}}</td><td style="color:#f85149">${{s.missing}}</td></tr>`;
+        }});
+        html += '</tbody></table></div>';
+    }}
 
     el.innerHTML = html;
 
@@ -1321,13 +1347,15 @@ function renderRunDetail(idx) {{
         ? `${{r.avg_total_score}}<span style="font-size:14px;color:#6e7681">/8</span>`
         : '—';
     const avgScorePct = r.avg_total_score !== null ? Math.round(r.avg_total_score / 8 * 100) : 0;
-    html += `<div class="kpi-grid" style="grid-template-columns: repeat(6, 1fr)">
+    const runSkipped = r.skipped ? r.skipped.length : 0;
+    html += `<div class="kpi-grid" style="grid-template-columns: repeat(7, 1fr)">
         <div class="kpi"><div class="kpi-value" style="color:#f0f6fc">${{r.reviewed}}</div><div class="kpi-label">Reviewed</div></div>
         <div class="kpi"><div class="kpi-value" style="color:${{healthColor(r.approval_rate)}}">${{r.approval_rate}}%</div><div class="kpi-label">Approval Rate</div></div>
         <div class="kpi"><div class="kpi-value" style="color:${{healthColor(avgScorePct)}}">${{avgScoreHtml}}</div><div class="kpi-label">Avg Score</div></div>
         <div class="kpi"><div class="kpi-value" style="color:#f85149">${{r.needs_attention || 0}}</div><div class="kpi-label">Needs Attention</div></div>
         <div class="kpi"><div class="kpi-value" style="color:${{healthColor(100-r.revision_rate)}}">${{r.revision_rate}}%</div><div class="kpi-label">Revision Rate</div></div>
         <div class="kpi"><div class="kpi-value" style="color:${{healthColor(r.weakest_rate)}}">${{r.weakest_rate}}%</div><div class="kpi-label">Weakest: ${{r.weakest_dim.charAt(0).toUpperCase()+r.weakest_dim.slice(1)}}</div></div>
+        <div class="kpi"><div class="kpi-value" style="color:${{runSkipped > 0 ? '#d29922' : '#3fb950'}}">${{runSkipped}}</div><div class="kpi-label">Skipped</div><div class="kpi-detail">${{runSkipped > 0 ? 'Missing required labels' : 'All RFEs processed'}}</div></div>
     </div>`;
 
     // Two-col: dimension bars + verdict grid
@@ -1451,14 +1479,14 @@ function renderRunDetail(idx) {{
     html += '</tbody></table>';
 
     // Skipped RFEs section
-    if (run.skipped && run.skipped.length > 0) {{
+    if (r.skipped && r.skipped.length > 0) {{
         html += `<div style="margin-top:24px;padding:16px;background:#1c1917;border:1px solid #d29922;border-radius:8px;">
-            <h3 style="color:#d29922;margin:0 0 12px;">Skipped RFEs (${{run.skipped.length}})</h3>
+            <h3 style="color:#d29922;margin:0 0 12px;">Skipped RFEs (${{r.skipped.length}})</h3>
             <p style="color:#8b949e;margin-bottom:12px;">Missing required labels (strat-creator-3.5 + rfe-creator-autofix-rubric-pass or tech-reviewed)</p>
             <table><thead><tr>
                 <th>RFE Key</th><th>Title</th><th>Current Labels</th><th style="color:#f85149">Missing</th>
             </tr></thead><tbody>`;
-        run.skipped.forEach(s => {{
+        r.skipped.forEach(s => {{
             html += `<tr><td>${{s.rfe_key}}</td><td>${{s.title}}</td><td>${{s.labels}}</td><td style="color:#f85149">${{s.missing}}</td></tr>`;
         }});
         html += '</tbody></table></div>';
