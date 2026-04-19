@@ -783,8 +783,6 @@ tr.clickable {{ cursor: pointer; }}
         All runs are <strong style="color:#c9d1d9">dry runs</strong> — no data is written to Jira.
         <br>
         <strong style="color:#c9d1d9">What to expect next:</strong> Jira integration (write-back of strategies, reviews, and labels) and go-live.
-        <br>
-        <span style="color:#6e7681">The binary gate is intentional: only APPROVE passes automatically. Everything else requires human review.</span>
     </div>
 </div>
 
