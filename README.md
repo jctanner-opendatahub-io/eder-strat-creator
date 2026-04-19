@@ -69,6 +69,10 @@ strat-creator/
     └── pipeline-report.html    # Latest HTML report
 ```
 
+## Documentation
+
+- [Human Review Guide](docs/human-review-guide.md) — How staff engineers and tech leads handle strategies flagged by the pipeline
+
 ## Related Projects
 
 - **rfe-creator** — Phase 1: RFE assessment pipeline (upstream). Has `strat.*` skill stubs that these skills were forked from.
