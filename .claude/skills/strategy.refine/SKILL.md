@@ -47,7 +47,13 @@ If architecture context is not available, note this and produce the best refinem
 
 ## HOW Context Sources
 
-Before generating the strategy, check for two high-priority inputs that contain implementation guidance. These take priority over general architecture context when they exist, because they represent either domain expert knowledge or prior technical analysis of this specific RFE.
+Before generating the strategy, check for three high-priority inputs that contain implementation guidance. These take priority over general architecture context when they exist, because they represent either domain expert knowledge, cross-strategy corrections, or prior technical analysis of this specific RFE.
+
+**Priority chain** (highest to lowest):
+1. Staff Engineer Input (per-strategy, human-authored)
+2. Architecture Context Overlays (cross-strategy, human-authored corrections)
+3. Removed RFE Context (per-RFE implementation details)
+4. Architecture Context (generated platform docs)
 
 ### Source 1: Removed Implementation Context from RFE
 
@@ -87,6 +93,21 @@ When Staff Engineer Input has content:
 - Do not remove or modify the Staff Engineer Input content — it is a human-authored section
 
 If the section contains only HTML comments, it has no actionable input — skip it.
+
+### Source 3: Architecture Context Overlays
+
+Check for overlay files in `.context/architecture-context/overlays/`. If the directory exists, glob all `*.md` files (excluding `README.md`) and read their YAML frontmatter.
+
+Filter for relevant overlays:
+1. **Status**: `status` must be `active` (ignore `superseded`)
+2. **Release**: `release` list must contain the target RHOAI release (e.g., `"3.5"`) or `"all"`
+3. **Component match**: `affects` list must intersect with the components mentioned in this strategy's `## Affected Components` table. Overlays with `affects: [platform]` match all strategies.
+
+For each matched overlay, read its `## Fact` and `## Impact on Strategies` sections. Inject these into your refinement context alongside the architecture docs and other sources.
+
+**Priority**: Overlays are human-authored corrections that are more recent than the generated architecture context. When an overlay contradicts the architecture docs, follow the overlay. Staff Engineer Input still takes precedence over overlays when they conflict.
+
+If no overlays directory exists or no overlays match, proceed without them.
 
 ## What to Produce
 
