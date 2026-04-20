@@ -66,8 +66,6 @@ export JIRA_SERVER="https://redhat.atlassian.net"
 export JIRA_USER="your-email@redhat.com"
 export JIRA_TOKEN="your-atlassian-api-token"
 
-# Anthropic API key (required, powers the AI pipeline)
-export ANTHROPIC_API_KEY="sk-ant-your-key"
 ```
 
 To generate a Jira API token, go to https://id.atlassian.com/manage-profile/security/api-tokens.
