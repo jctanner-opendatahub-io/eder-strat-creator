@@ -145,15 +145,101 @@ After updating the architecture context, rerun `/strategy.refine`. It will fetch
 
 #### Path A2: Add an Overlay
 
-If the correction is a recent change (version bump, maturity shift, new dependency) and the architecture context hasn't been regenerated yet, write an overlay instead. Overlays are lightweight patches that apply across all matching strategies.
+If the correction is a recent change (version bump, maturity shift, new dependency) and the architecture context hasn't been regenerated yet, write an overlay instead. Overlays are architecture updates that apply across all matching strategies.
 
-Create a file in `overlays/` in the architecture-context repo following the format in the [Overlays README](https://github.com/opendatahub-io/architecture-context/blob/main/overlays/README.md). The key fields:
+##### How to Create an Overlay
 
-- `affects`: which components this applies to (determines which strategies pick it up)
-- `release`: which RHOAI releases this applies to
-- `provenance`: link to the PR, issue, or decision that established this fact
+1. Clone or navigate to the architecture-context repo:
 
-After adding the overlay, rerun `/strategy.refine`. The pipeline will fetch overlays alongside the architecture docs and apply matching ones during refinement.
+```bash
+git clone git@github.com:opendatahub-io/architecture-context.git
+cd architecture-context
+```
+
+2. Find the next available ID by checking existing overlays:
+
+```bash
+ls overlays/*.md | sort
+```
+
+3. Create a new overlay file using the naming convention `NNNN-short-kebab-description.md`:
+
+```bash
+cat > overlays/0002-your-overlay-name.md << 'OVERLAY'
+---
+id: "0002"
+title: Short description of what changed
+status: active
+created: 2026-04-20
+affects:
+  - component-name-1
+  - component-name-2
+release:
+  - "3.5"
+provenance:
+  - https://github.com/opendatahub-io/some-repo/pull/123
+author: Your Name
+superseded_by: null
+---
+
+## Fact
+
+What changed, in 1-3 sentences. Include the specific version, PR, or decision.
+
+## Impact on Strategies
+
+- How this affects strategies (be specific: "use X, not Y")
+- What strategies should reference instead
+
+## Context
+
+Why this overlay exists — typically the generated architecture docs
+reference an older state because a newer branch hasn't been analyzed yet.
+OVERLAY
+```
+
+Key fields:
+- `affects`: component names matching files in `architecture/*.md` (e.g., `data-science-pipelines`, `notebooks`). Use `platform` for platform-wide facts.
+- `release`: which RHOAI releases this applies to. Use `["all"]` for timeless facts.
+- `provenance`: links to the PRs, issues, or decisions that establish this fact.
+
+##### How to Test an Overlay Locally
+
+Before pushing upstream, test that the overlay is picked up correctly by the pipeline:
+
+```bash
+# From the strat-creator directory, point at your local architecture-context
+claude -p "/strategy.refine --dry-run --architecture-context /path/to/your/architecture-context"
+claude -p "/strategy.review --dry-run --architecture-context /path/to/your/architecture-context"
+```
+
+The pipeline will print which overlays were applied. Verify your overlay appears in the list and that the refined strategy reflects the updated facts.
+
+##### How to Submit an Overlay
+
+Once tested, commit and open a PR against the upstream repo:
+
+```bash
+cd architecture-context
+git checkout -b overlay-your-description
+git add overlays/NNNN-your-overlay-name.md
+git commit -m "Add overlay: short description"
+git push -u origin overlay-your-description
+gh pr create --repo opendatahub-io/architecture-context
+```
+
+After the PR is merged, the pipeline will automatically pick up the overlay on the next run (no `--architecture-context` flag needed).
+
+##### When to Mark an Overlay as Superseded
+
+When the architecture context is regenerated and includes the fact from an overlay, update the overlay:
+
+```yaml
+status: superseded
+superseded_by: "architecture context regenerated for rhoai-3.5"
+```
+
+The pipeline ignores superseded overlays. The file stays in the repo for audit trail.
 
 #### Path B: Strategy-Specific Fix
 
