@@ -66,19 +66,23 @@ For each selected RFE, fetch its labels from Jira (the `labels` field is already
 1. `strat-creator-3.5`
 2. At least one of: `rfe-creator-autofix-rubric-pass` or `tech-reviewed`
 
-If an RFE fails the label gate, **skip it** — do not create a strategy stub. Instead, record it in `artifacts/strat-skipped.md`:
+If an RFE fails the label gate, **skip it** — do not create a strategy stub. Instead, append it to `artifacts/strat-skipped.md`.
+
+Determine the **run identifier**: use the config filename from `$ARGUMENTS` (e.g., `road-to-production`) + current UTC timestamp in ISO format. Example: `road-to-production @ 2026-04-21T14:30Z`. If no config filename is available, use `manual`.
+
+If `artifacts/strat-skipped.md` does not exist, create it with the header. If it already exists, **append new rows** — do not overwrite. This preserves skip history across runs.
 
 ```markdown
 # Skipped RFEs
 
-RFEs that were not processed due to missing required labels.
+RFEs that were not processed due to missing required labels or already-processed STRATs.
 
-| RFE Key | Title | Labels | Missing |
-|---------|-------|--------|---------|
-| RHAIRFE-NNNN | ... | label1, label2 | rfe-creator-autofix-rubric-pass or tech-reviewed |
+| RFE Key | Title | Reason | Run |
+|---------|-------|--------|-----|
+| RHAIRFE-NNNN | ... | missing labels: rfe-creator-autofix-rubric-pass or tech-reviewed | road-to-production @ 2026-04-21T14:30Z |
 ```
 
-Each pipeline run writes its own `strat-skipped.md` with only that run's skipped RFEs. Print `[SKIPPED] RHAIRFE-NNNN — missing required labels: <list>` for each skipped RFE.
+Print `[SKIPPED] RHAIRFE-NNNN — missing required labels: <list>` for each skipped RFE.
 
 If **all** selected RFEs are skipped, stop and tell the user none of the provided RFEs have the required labels.
 
@@ -159,6 +163,20 @@ Look for a link with type **"Cloners"** pointing to a RHAISTRAT issue. Only Clon
 The STRAT was already cloned from the RFE in Jira. Import its content instead of creating a new stub. Skip Step 3 (Jira clone) for this RFE.
 
 **Multiple Cloners links**: An RFE may have more than one RHAISTRAT linked. Filter out any with status **Closed**, **Resolved**, **In Progress**, or **Review** — these are already being worked on or completed and must not be touched. Import only RHAISTRAT issues in early states (e.g., New, Open). If all linked STRATs are filtered out, treat this RFE as Path B (create new).
+
+**Pipeline label gate**: For each remaining STRAT candidate, fetch its labels:
+
+```bash
+python3 ${CLAUDE_SKILL_DIR}/scripts/fetch_issue.py RHAISTRAT-NNNN --fields labels --markdown
+```
+
+If the STRAT has either `strat-creator-rubric-pass` or `strat-creator-needs-attention` in its labels, **skip this RFE** — the STRAT has already been processed by the pipeline:
+- Do NOT import the STRAT
+- Append to `artifacts/strat-skipped.md` with reason and run info (same format as Step 2a): `RHAISTRAT-NNNN already processed (label: <label>)`
+- Print `[SKIP] RHAIRFE-NNNN — RHAISTRAT-NNNN already has <label>`
+- Continue to the next RFE
+
+If all STRAT candidates for this RFE are skipped by the label gate, move to the next RFE (do NOT fall through to Path B).
 
 1. Fetch the RHAISTRAT issue from Jira:
 
