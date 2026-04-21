@@ -82,36 +82,27 @@ Each pipeline run writes its own `strat-skipped.md` with only that run's skipped
 
 If **all** selected RFEs are skipped, stop and tell the user none of the provided RFEs have the required labels.
 
-## Step 3: Clone in Jira (if MCP available)
+## Step 3: Clone RFE to RHAISTRAT in Jira
 
-For each selected RFE, use Jira's clone operation to clone the RHAIRFE into the RHAISTRAT project. This ensures:
-- The Cloners link is created correctly by Jira
-- All default fields are copied as Jira intends
-- The clone target project is RHAISTRAT
-- The issue type in RHAISTRAT is Feature
+For each selected RFE that needs a new STRAT (Path B from Step 5a), clone it into the RHAISTRAT project. This creates a new RHAISTRAT issue with the same summary, description, priority, and labels, and links the two with a Cloners link.
 
-After cloning, record each new RHAISTRAT key.
+**Try MCP first.** If `mcp__atlassian__*` tools are available, use Jira's clone operation via MCP.
 
-### If Jira MCP Is NOT Available
+**If MCP is NOT available, use the REST API clone script:**
 
-Do not attempt to create issues manually via API. Instead, write `artifacts/strat-jira-guide.md` with instructions for the user:
-
-```markdown
-# Manual RHAISTRAT Creation Guide
-
-For each RFE below, clone it in Jira to the RHAISTRAT project:
-
-1. Open the RHAIRFE in Jira
-2. Use Clone (... menu → Clone) and set the target project to RHAISTRAT
-3. The issue type will be Feature
-4. Record the new RHAISTRAT key below
-
-| Source RFE | RHAISTRAT Key | Title |
-|------------|---------------|-------|
-| RFE-001 / RHAIRFE-NNNN | <fill in after cloning> | ... |
-
-After cloning, run `/strategy.refine` to add the technical strategy.
+```bash
+python3 scripts/clone_issue.py RHAIRFE-NNNN --target-project RHAISTRAT --issue-type Feature
 ```
+
+The script:
+1. Fetches the source RFE (summary, description as raw ADF, priority, labels)
+2. Creates a new Feature issue in the RHAISTRAT project with the same fields
+3. Creates a Cloners link between the source RFE and the new RHAISTRAT
+4. Prints the new RHAISTRAT key to stdout
+
+After cloning, record each new RHAISTRAT key. Use it as the filename and `jira_key` in Step 5.
+
+**If both MCP and REST API credentials are unavailable** (dry-run mode or no JIRA env vars), skip cloning and use local `STRAT-NNN` naming with `jira_key=null`.
 
 ## Step 4: Save Original RFE Snapshots
 
@@ -211,9 +202,18 @@ python3 scripts/frontmatter.py set artifacts/strat-tasks/RHAISTRAT-NNNN.md \
 
 ### Path B: No Cloners link (no existing STRAT — create new)
 
-This is the existing behavior. Create a stub from the RFE content.
+No existing STRAT found. Clone the RFE into RHAISTRAT (Step 3), then create the local stub.
 
-1. Write the file to `artifacts/strat-tasks/STRAT-NNN.md` (dry-run) or `RHAISTRAT-NNNN.md` (after Jira clone). Do NOT modify, reformat, or restructure the RFE text — copy it character-for-character and append the pipeline sections:
+**If not in dry-run mode**, clone first using Step 3, then use the returned RHAISTRAT key as the filename:
+
+```bash
+STRAT_KEY=$(python3 scripts/clone_issue.py RHAIRFE-NNNN --target-project RHAISTRAT --issue-type Feature)
+echo "[CLONE] $STRAT_KEY cloned from RHAIRFE-NNNN"
+```
+
+**If in dry-run mode**, skip cloning and use `STRAT-NNN.md` naming with `jira_key=null`.
+
+1. Write the file to `artifacts/strat-tasks/STRAT-NNN.md` (dry-run) or `artifacts/strat-tasks/RHAISTRAT-NNNN.md` (after Jira clone). Do NOT modify, reformat, or restructure the RFE text — copy it character-for-character and append the pipeline sections:
 
 ```markdown
 ## Business Need (from RFE)
