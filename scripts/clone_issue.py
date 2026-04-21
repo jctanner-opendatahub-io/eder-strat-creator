@@ -64,11 +64,11 @@ def main():
         labels=labels,
     )
 
-    # Cloners link: source "is cloned by" new issue
+    # Cloners link: new issue "is cloned by" source (STRAT is the clone of the RFE)
     create_issue_link(server, user, token,
                       type_name="Cloners",
-                      inward_key=args.source_key,
-                      outward_key=new_key)
+                      inward_key=new_key,
+                      outward_key=args.source_key)
 
     print(new_key)
 
