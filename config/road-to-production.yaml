@@ -6,3 +6,8 @@ test_rfes:
     size: L
     comment: "Cross-component: AI Pipelines, Notebook Server, Notebooks Extensions, UXD. Tests overlay support (KFP SDK 2.16)."
     cross_component: true
+  - id: RHAIRFE-913
+    title: "Multimodal Support in Gen AI Studio Playground"
+    size: M
+    comment: "Tests mixed batch: RHAIRFE-1397 should skip (already processed), this one should run."
+    cross_component: false
