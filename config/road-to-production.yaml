@@ -1,0 +1,8 @@
+# Road to production — RFEs for validating the pipeline end-to-end
+# before enabling live Jira writes.
+test_rfes:
+  - id: RHAIRFE-1397
+    title: "Kubeflow Automated pipeLines Engine integration into RHOAI"
+    size: L
+    comment: "Cross-component: AI Pipelines, Notebook Server, Notebooks Extensions, UXD. Tests overlay support (KFP SDK 2.16)."
+    cross_component: true
