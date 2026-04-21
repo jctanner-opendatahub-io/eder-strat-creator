@@ -1,5 +1,5 @@
 ---
-name: strategy.review
+name: strategy-review
 description: Adversarial review of refined strategies. Scores against rubric, then runs independent forked reviewers for detailed prose.
 user-invocable: true
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Skill, Agent
@@ -17,7 +17,7 @@ If `--dry-run` is in `$ARGUMENTS`, skip ALL external writes:
 
 ## Step 1: Verify Artifacts Exist
 
-Read files in `artifacts/strat-tasks/`. If no strategy artifacts exist or they haven't been refined yet (no "Strategy" section), tell the user to run `/strategy.refine` first and stop.
+Read files in `artifacts/strat-tasks/`. If no strategy artifacts exist or they haven't been refined yet (no "Strategy" section), tell the user to run `/strategy-refine` first and stop.
 
 Check if prior reviews exist in `artifacts/strat-reviews/`. If any exist for the strategies being reviewed, read them — this is a re-review after revisions.
 
@@ -26,19 +26,19 @@ Check if prior reviews exist in `artifacts/strat-reviews/`. If any exist for the
 If `--architecture-context <path>` is in `$ARGUMENTS`, use the local path:
 
 ```bash
-bash scripts/fetch-architecture-context.sh <path>
+bash ${CLAUDE_SKILL_DIR}/scripts/fetch-architecture-context.sh <path>
 ```
 
 Otherwise, fetch from remote:
 
 ```bash
-bash scripts/fetch-architecture-context.sh
+bash ${CLAUDE_SKILL_DIR}/scripts/fetch-architecture-context.sh
 ```
 
 ## Step 3: Bootstrap assess-strat
 
 ```bash
-bash scripts/bootstrap-assess-strat.sh
+bash ${CLAUDE_SKILL_DIR}/scripts/bootstrap-assess-strat.sh
 ```
 
 This clones the assess-strat plugin into `.context/assess-strat/`, copies skills and agent definitions, and exports the rubric to `artifacts/strat-rubric.md`.
@@ -84,7 +84,7 @@ After all scorer agents have completed, run the scoring scripts to deterministic
 python3 .context/assess-strat/scripts/parse_results.py /tmp/strat-assess/review/
 
 # Apply scores and verdicts to review file frontmatter
-python3 scripts/apply_scores.py /tmp/strat-assess/review/scores.csv \
+python3 ${CLAUDE_SKILL_DIR}/scripts/apply_scores.py /tmp/strat-assess/review/scores.csv \
     --review-dir artifacts/strat-reviews \
     --result-dir /tmp/strat-assess/review
 
@@ -154,7 +154,7 @@ The review file body should contain:
 After writing prose, update the `reviewers.*` frontmatter fields with each prose reviewer's individual verdict:
 
 ```bash
-python3 scripts/frontmatter.py set artifacts/strat-reviews/<id>-review.md \
+python3 ${CLAUDE_SKILL_DIR}/scripts/frontmatter.py set artifacts/strat-reviews/<id>-review.md \
     reviewers.feasibility=<prose_verdict> \
     reviewers.testability=<prose_verdict> \
     reviewers.scope=<prose_verdict> \
@@ -172,7 +172,7 @@ For each reviewed strategy, compose a review summary comment and post it to the 
 Read the review file frontmatter to get scores and recommendation:
 
 ```bash
-python3 scripts/frontmatter.py read artifacts/strat-reviews/{id}-review.md
+python3 ${CLAUDE_SKILL_DIR}/scripts/frontmatter.py read artifacts/strat-reviews/{id}-review.md
 ```
 
 Compose the comment in markdown using this format:
@@ -195,7 +195,7 @@ Compose the comment in markdown using this format:
 Action text by verdict:
 - **APPROVE**: "No action needed — strategy passed quality review."
 - **REVISE**: "Edit the strategy to address flagged issues, then remove the `needs-attention` label. The pipeline will re-evaluate automatically."
-- **REJECT**: "This strategy has fundamental problems. Consider revisiting the source RFE or re-running `/strategy.refine` with different constraints."
+- **REJECT**: "This strategy has fundamental problems. Consider revisiting the source RFE or re-running `/strategy-refine` with different constraints."
 
 **Posting:**
 
@@ -203,7 +203,7 @@ Save the composed markdown to a temp file, then post:
 
 ```bash
 python3 -c "
-import sys; sys.path.insert(0, 'scripts')
+import sys; sys.path.insert(0, '${CLAUDE_SKILL_DIR}/scripts')
 from jira_utils import add_comment, markdown_to_adf
 import os
 comment_md = open(sys.argv[1]).read()
@@ -258,7 +258,7 @@ In dry-run mode, skip and print `[DRY RUN] Skipping labels for RHAISTRAT-NNNN`.
 
 Based on the results:
 - **All approved** (`needs_attention=false`): Tell the user strategies are ready for `/strat.prioritize`.
-- **Some need revision** (`needs_attention=true`, verdict=REVISE): List specific issues by dimension. Tell the user to edit the strategy files, remove `needs-attention`, and re-run `/strategy.review`.
-- **Fundamental problems** (`needs_attention=true`, verdict=REJECT): Recommend revisiting the RFE or re-running `/strategy.refine` with different constraints.
+- **Some need revision** (`needs_attention=true`, verdict=REVISE): List specific issues by dimension. Tell the user to edit the strategy files, remove `needs-attention`, and re-run `/strategy-review`.
+- **Fundamental problems** (`needs_attention=true`, verdict=REJECT): Recommend revisiting the RFE or re-running `/strategy-refine` with different constraints.
 
 $ARGUMENTS
