@@ -83,15 +83,15 @@ Run the full pipeline in dry-run mode for the RFE you want to work on. Dry-run i
 
 ```bash
 # Replace RHAIRFE-1146 with the RFE ID for your strategy
-claude -p "/strategy.create RHAIRFE-1397 --dry-run"
-claude -p "/strategy.refine --dry-run"
-claude -p "/strategy.review --dry-run"
+claude -p "/strategy-create RHAIRFE-1397 --dry-run"
+claude -p "/strategy-refine --dry-run"
+claude -p "/strategy-review --dry-run"
 ```
 
 To see real-time progress, run interactively instead (drop the `-p` flag):
 
 ```bash
-claude "/strategy.create RHAIRFE-1397 --dry-run"
+claude "/strategy-create RHAIRFE-1397 --dry-run"
 ```
 
 After the run completes, you'll have:
@@ -193,8 +193,8 @@ Before pushing upstream, test that the overlay is picked up correctly by the pip
 
 ```bash
 # From the strat-creator directory, point at your local architecture-context
-claude -p "/strategy.refine --dry-run --architecture-context /path/to/your/architecture-context"
-claude -p "/strategy.review --dry-run --architecture-context /path/to/your/architecture-context"
+claude -p "/strategy-refine --dry-run --architecture-context /path/to/your/architecture-context"
+claude -p "/strategy-review --dry-run --architecture-context /path/to/your/architecture-context"
 ```
 
 The pipeline will print which overlays were applied. Verify your overlay appears in the list and that the refined strategy reflects the updated facts.
@@ -266,15 +266,15 @@ For major structural changes that overlays can't express (adding a new component
 
 > **Note:** The process for updating architecture context docs is being defined by James Tanner, Kevin Bader, and Luca Burgazzoli. Contact them for instructions. Until that process is finalized, prefer overlays (Path A) for most corrections.
 
-After updating the architecture context, rerun `/strategy.refine`. It will fetch the updated context and regenerate the strategy accordingly.
+After updating the architecture context, rerun `/strategy-refine`. It will fetch the updated context and regenerate the strategy accordingly.
 
 ### Step 4: Rerun the Pipeline
 
 From your local `strat-creator` directory (see [Local Setup](#local-setup)), rerun refine and review:
 
 ```bash
-claude -p "/strategy.refine --dry-run"
-claude -p "/strategy.review --dry-run"
+claude -p "/strategy-refine --dry-run"
+claude -p "/strategy-review --dry-run"
 ```
 
 In CI, this happens automatically on the next pipeline run after you remove the `strat-creator-needs-attention` label.

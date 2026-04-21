@@ -6,15 +6,15 @@ Takes approved RFEs, which describe the WHAT and WHY, and produces the HOW: acti
 
 Given an approved RFE (from the `rfe-creator` pipeline), this pipeline:
 
-1. **Creates** a strategy stub from the RFE data (`strategy.create`)
-2. **Refines** the stub into a structured strategy using architecture context (`strategy.refine`)
-3. **Reviews** the strategy across 4 dimensions — feasibility, testability, scope, architecture (`strategy.review`)
+1. **Creates** a strategy stub from the RFE data (`strategy-create`)
+2. **Refines** the stub into a structured strategy using architecture context (`strategy-refine`)
+3. **Reviews** the strategy across 4 dimensions — feasibility, testability, scope, architecture (`strategy-review`)
 
 Each step runs in its own Claude session. Artifacts on disk are the handoff between steps.
 
 ## RFE Quality Gate
 
-RFEs must have the `rfe-creator-autofix-rubric-pass` label to enter the strategy pipeline. This label is set by the upstream `rfe-creator` pipeline after the RFE passes its quality rubric. RFEs without this label are skipped during `strategy.create`.
+RFEs must have the `rfe-creator-autofix-rubric-pass` label to enter the strategy pipeline. This label is set by the upstream `rfe-creator` pipeline after the RFE passes its quality rubric. RFEs without this label are skipped during `strategy-create`.
 
 Batch config files in `config/` list RFEs with their labels — check the `labels` field to see which RFEs qualify.
 
@@ -22,9 +22,9 @@ Batch config files in `config/` list RFEs with their labels — check the `label
 
 | Component | Type | Description |
 |-----------|------|-------------|
-| `strategy.create` | Skill | Creates strategy stubs from approved RFEs, saves original RFE snapshots |
-| `strategy.refine` | Skill | Adds technical approach using architecture context, size-scaled templates |
-| `strategy.review` | Skill | Scores via `strat-scorer` agents, then runs 4 independent prose reviewers |
+| `strategy-create` | Skill | Creates strategy stubs from approved RFEs, saves original RFE snapshots |
+| `strategy-refine` | Skill | Adds technical approach using architecture context, size-scaled templates |
+| `strategy-review` | Skill | Scores via `strat-scorer` agents, then runs 4 independent prose reviewers |
 | `strategy-feasibility-review` | Skill | Technical viability and effort credibility |
 | `strategy-testability-review` | Skill | Measurable criteria and edge cases |
 | `strategy-scope-review` | Skill | Right-sizing and scope boundaries |
