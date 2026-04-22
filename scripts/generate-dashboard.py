@@ -475,11 +475,17 @@ def load_run_from_json(run_dir, config):
         "weakest_dim": min(stats.get("dimensions", {"feasibility": {"rate": 0}}),
                           key=lambda d: stats.get("dimensions", {}).get(d, {}).get("rate", 0))
                       if stats.get("dimensions") else "—",
-        "weakest_rate": 0,
+        "weakest_rate": min((stats.get("dimensions", {}).get(d, {}).get("rate", 0)
+                            for d in stats.get("dimensions", {"feasibility": {"rate": 0}})),
+                           default=0)
+                      if stats.get("dimensions") else 0,
         "strongest_dim": max(stats.get("dimensions", {"feasibility": {"rate": 0}}),
                             key=lambda d: stats.get("dimensions", {}).get(d, {}).get("rate", 0))
                         if stats.get("dimensions") else "—",
-        "strongest_rate": 0,
+        "strongest_rate": max((stats.get("dimensions", {}).get(d, {}).get("rate", 0)
+                              for d in stats.get("dimensions", {"feasibility": {"rate": 0}})),
+                             default=0)
+                        if stats.get("dimensions") else 0,
         "strategies": strategies,
         "skipped": data.get("skipped", []),
         "dry_run": data.get("dry_run", True),
@@ -1218,7 +1224,7 @@ function renderOverviewKPIs() {{
         <div class="hero-sub">${{RUNS.length}} pipeline run(s) | Latest: ${{cur ? cur.label : 'none'}}</div>
     </div>`;
     html += `<div class="kpi-grid" style="grid-template-columns: repeat(6, 1fr);">
-        <div class="kpi"><div class="kpi-value" style="color:#58a6ff">${{RUNS.length}}</div><div class="kpi-label">Pipeline Runs</div><div class="kpi-detail">${{cur ? cur.cumulative_reviewed || cur.reviewed : 0}} strategies total</div></div>
+        <div class="kpi"><div class="kpi-value" style="color:#58a6ff">${{RUNS.length}}</div><div class="kpi-label">Pipeline Runs</div><div class="kpi-detail">${{RUNS.reduce((a, r) => a + r.reviewed, 0)}} strategies total</div></div>
         <div class="kpi"><div class="kpi-value" style="color:#f0f6fc">${{cur ? cur.reviewed : 0}}</div><div class="kpi-label">Strategies Reviewed</div><div class="kpi-detail">${{deltaHtml(cur, prev, 'reviewed', false)}}</div></div>
         <div class="kpi"><div class="kpi-value" style="color:${{heroColor}}">${{rate}}%</div><div class="kpi-label">Approval Rate</div><div class="kpi-detail">${{deltaHtml(cur, prev, 'approval_rate', true)}}</div></div>
         <div class="kpi"><div class="kpi-value" style="color:${{healthColor(avgScorePct)}}">${{avgScoreHtml}}</div><div class="kpi-label">Avg Score</div><div class="kpi-detail">Rubric: F+T+S+A (0-2 each)</div></div>
