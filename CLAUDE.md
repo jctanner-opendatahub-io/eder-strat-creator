@@ -16,7 +16,7 @@ artifacts/
     RHAISTRAT-400-review.md
   strat-originals/          # Original RFE snapshots at time of strategy creation
     RHAIRFE-1595.md
-  strat-tickets.md          # RHAISTRAT ticket mapping after cloning
+  strat-tasks/RHAIRFE-*.md  # Symlinks mapping RFE key → RHAISTRAT strategy file
 ```
 
 ### Frontmatter

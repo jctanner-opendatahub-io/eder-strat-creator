@@ -280,17 +280,15 @@ add_labels(s, u, t, 'RHAISTRAT-NNNN', ['strat-creator-auto-created'])
 
 Print `[LABEL] strat-creator-auto-created added to RHAISTRAT-NNNN`.
 
-## Step 7: Write Artifacts
+## Step 7: Link RFE to STRAT
 
-If Jira cloning was done, write `artifacts/strat-tickets.md`:
+For each RFE that was cloned or imported (Path A or B), create a symlink in `artifacts/strat-tasks/` so the strategy can be looked up by either key:
 
-```markdown
-# RHAISTRAT Tickets
-
-| RFE Source | STRAT Key | Title | Priority | URL |
-|------------|-----------|-------|----------|-----|
-| RHAIRFE-NNNN | RHAISTRAT-NNNN | ... | Major | https://redhat.atlassian.net/browse/RHAISTRAT-NNNN |
+```bash
+cd artifacts/strat-tasks && ln -sf RHAISTRAT-NNNN.md RHAIRFE-NNNN.md
 ```
+
+This is atomic and race-free — each RFE gets its own symlink, no shared file to contend.
 
 ## Step 8: Next Steps
 
