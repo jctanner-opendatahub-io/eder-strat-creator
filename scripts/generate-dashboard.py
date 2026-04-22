@@ -1643,7 +1643,8 @@ function renderRunDetail(idx) {{
         ? `${{r.avg_total_score}}<span style="font-size:14px;color:#6e7681">/8</span>`
         : '—';
     const avgScorePct = r.avg_total_score !== null ? Math.round(r.avg_total_score / 8 * 100) : 0;
-    const runSkippedGateCount = (r.skipped || []).filter(s => s.missing && s.missing.includes('rfe-creator-autofix-rubric-pass')).length;
+    const runSkippedAll = r.skipped || [];
+    const runSkippedGateCount = runSkippedAll.length;
     html += `<div class="kpi-grid" style="grid-template-columns: repeat(7, 1fr)">
         <div class="kpi"><div class="kpi-value" style="color:#f0f6fc">${{r.reviewed}}</div><div class="kpi-label">Reviewed</div></div>
         <div class="kpi"><div class="kpi-value" style="color:${{healthColor(r.approval_rate)}}">${{r.approval_rate}}%</div><div class="kpi-label">Approval Rate</div></div>
@@ -1651,7 +1652,7 @@ function renderRunDetail(idx) {{
         <div class="kpi"><div class="kpi-value" style="color:#f85149">${{r.needs_attention || 0}}</div><div class="kpi-label">Needs Attention</div></div>
         <div class="kpi"><div class="kpi-value" style="color:${{healthColor(100-r.revision_rate)}}">${{r.revision_rate}}%</div><div class="kpi-label">Revision Rate</div></div>
         <div class="kpi"><div class="kpi-value" style="color:${{healthColor(r.weakest_rate)}}">${{r.weakest_rate}}%</div><div class="kpi-label">Weakest: ${{r.weakest_dim.charAt(0).toUpperCase()+r.weakest_dim.slice(1)}}</div></div>
-        <div class="kpi"><div class="kpi-value" style="color:${{runSkippedGateCount > 0 ? '#d29922' : '#3fb950'}}">${{runSkippedGateCount}}</div><div class="kpi-label">Skipped RFEs</div><div class="kpi-detail">${{runSkippedGateCount > 0 ? 'Waiting on entry gate' : 'All RFEs processed'}}</div></div>
+        <div class="kpi"><div class="kpi-value" style="color:${{runSkippedGateCount > 0 ? '#d29922' : '#3fb950'}}">${{runSkippedGateCount}}</div><div class="kpi-label">Skipped RFEs</div><div class="kpi-detail">${{runSkippedGateCount > 0 ? 'See details below' : 'All RFEs processed'}}</div></div>
     </div>`;
 
     // Two-col: dimension bars + verdict grid
@@ -1774,16 +1775,15 @@ function renderRunDetail(idx) {{
     }});
     html += '</tbody></table>';
 
-    // Skipped RFEs section — only show gate-blocked entries
-    const runSkippedGate = (r.skipped || []).filter(s => s.missing && s.missing.includes('rfe-creator-autofix-rubric-pass'));
-    if (runSkippedGate.length > 0) {{
+    // Skipped RFEs section — show all skipped for this run (debug view)
+    if (runSkippedAll.length > 0) {{
         html += `<div style="margin-top:24px;padding:16px;background:#1c1917;border:1px solid #d29922;border-radius:8px;">
-            <h3 style="color:#d29922;margin:0 0 12px;">Skipped RFEs (${{runSkippedGate.length}})</h3>
-            <p style="color:#8b949e;margin-bottom:12px;">RFEs in scope but waiting on entry gate (rfe-creator-autofix-rubric-pass or tech-reviewed)</p>
+            <h3 style="color:#d29922;margin:0 0 12px;">Skipped RFEs (${{runSkippedAll.length}})</h3>
+            <p style="color:#8b949e;margin-bottom:12px;">All RFEs skipped during this run with reason</p>
             <table><thead><tr>
-                <th>RFE Key</th><th>Title</th><th>Current Labels</th><th style="color:#f85149">Missing</th>
+                <th>RFE Key</th><th>Title</th><th>Current Labels</th><th style="color:#f85149">Reason</th>
             </tr></thead><tbody>`;
-        runSkippedGate.forEach(s => {{
+        runSkippedAll.forEach(s => {{
             html += `<tr><td>${{s.rfe_key}}</td><td>${{s.title}}</td><td>${{s.labels}}</td><td style="color:#f85149">${{s.missing}}</td></tr>`;
         }});
         html += '</tbody></table></div>';
