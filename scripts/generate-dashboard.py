@@ -1479,6 +1479,7 @@ function buildRunList() {{
 // ─── Populate run selector ───────────────────────────────────────────────────
 function buildRunSelector() {{
     const sel = document.getElementById('run-select');
+    sel.innerHTML = '';
     for (let i = RUNS.length - 1; i >= 0; i--) {{
         const r = RUNS[i];
         const opt = document.createElement('option');
