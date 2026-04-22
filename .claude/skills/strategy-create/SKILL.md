@@ -226,7 +226,7 @@ No existing STRAT found. Clone the RFE into RHAISTRAT (Step 3), then create the 
 **If not in dry-run mode**, clone first using Step 3, then use the returned RHAISTRAT key as the filename:
 
 ```bash
-STRAT_KEY=$(python3 scripts/clone_issue.py RHAIRFE-NNNN --target-project RHAISTRAT --issue-type Feature)
+STRAT_KEY=$(python3 ${CLAUDE_SKILL_DIR}/scripts/clone_issue.py RHAIRFE-NNNN --target-project RHAISTRAT --issue-type Feature)
 echo "[CLONE] $STRAT_KEY cloned from RHAIRFE-NNNN"
 ```
 
@@ -271,7 +271,7 @@ If not in dry-run mode and a RHAISTRAT was created or imported (i.e., `jira_key`
 
 ```bash
 python3 -c "
-import sys; sys.path.insert(0, 'scripts')
+import sys; sys.path.insert(0, '${CLAUDE_SKILL_DIR}/scripts')
 from jira_utils import add_labels, require_env
 s, u, t = require_env()
 add_labels(s, u, t, 'RHAISTRAT-NNNN', ['strat-creator-auto-created'])
