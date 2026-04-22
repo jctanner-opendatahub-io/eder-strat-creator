@@ -849,7 +849,7 @@ tr.clickable {{ cursor: pointer; }}
         Strategies are scored on <strong style="color:#c9d1d9">four dimensions</strong> (Feasibility, Testability, Scope, Architecture) using a <strong style="color:#c9d1d9">calibrated rubric</strong> with 12 examples from real pipeline output.
         Each dimension is scored 0–2. Total: 8 points. Verdicts are <strong style="color:#c9d1d9">deterministic</strong> — computed from scores by code, not LLM judgment.
         <br>
-        <strong style="color:#c9d1d9">Verdict rules:</strong> APPROVE (≥6, no zeros) auto-passes. REVISE, SPLIT, and REJECT get <code style="background:#21262d;padding:2px 6px;border-radius:3px">needs-attention</code> for human review.
+        <strong style="color:#c9d1d9">Verdict rules:</strong> APPROVE (≥6, no zeros) auto-passes. REVISE and REJECT get <code style="background:#21262d;padding:2px 6px;border-radius:3px">needs-attention</code> for human review.
         <span id="mode-text">Production runs — data written to Jira.</span>
     </div>
 </div>
