@@ -265,6 +265,15 @@ def scan_runs(data_dir, max_runs=30):
         run_data["run_id"] = entry
         run_data["timestamp"] = ts.isoformat()
         run_data["is_current"] = (entry == current_target)
+
+        json_path = os.path.join(entry_path, "pipeline-data.json")
+        if os.path.exists(json_path):
+            with open(json_path, encoding="utf-8") as f:
+                pdata = json.load(f)
+            run_data["dry_run"] = pdata.get("dry_run", True)
+        else:
+            run_data["dry_run"] = True
+
         runs.append(run_data)
 
     runs.sort(key=lambda r: r["run_id"])
@@ -367,6 +376,8 @@ def main():
     parser.add_argument("--max-runs", type=int, default=30, help="Maximum runs to include")
     parser.add_argument("--no-body", action="store_true",
                         help="Exclude strategy/review body text (metadata only)")
+    parser.add_argument("--dry-run", action="store_true",
+                        help="Mark this run as a dry run (no Jira writes)")
     args = parser.parse_args()
 
     if not args.output_dir and not args.output:
@@ -385,7 +396,7 @@ def main():
         if args.no_body:
             for s in run_data["strategies"]:
                 s.pop("body", None)
-        result = {"generated_at": generated_at, **run_data}
+        result = {"generated_at": generated_at, "dry_run": args.dry_run, **run_data}
         out = args.output or os.path.join(args.output_dir, "pipeline-data.json")
         if args.output_dir:
             os.makedirs(args.output_dir, exist_ok=True)

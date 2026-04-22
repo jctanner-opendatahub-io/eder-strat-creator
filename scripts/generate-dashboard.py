@@ -482,6 +482,7 @@ def load_run_from_json(run_dir, config):
         "strongest_rate": 0,
         "strategies": strategies,
         "skipped": data.get("skipped", []),
+        "dry_run": data.get("dry_run", True),
     }
 
 
@@ -849,17 +850,21 @@ tr.clickable {{ cursor: pointer; }}
         Each dimension is scored 0–2. Total: 8 points. Verdicts are <strong style="color:#c9d1d9">deterministic</strong> — computed from scores by code, not LLM judgment.
         <br>
         <strong style="color:#c9d1d9">Verdict rules:</strong> APPROVE (≥6, no zeros) auto-passes. REVISE, SPLIT, and REJECT get <code style="background:#21262d;padding:2px 6px;border-radius:3px">needs-attention</code> for human review.
-        All runs are <strong style="color:#c9d1d9">dry runs</strong> — no data is written to Jira.
-        <br>
-        <strong style="color:#c9d1d9">What to expect next:</strong> Jira integration (write-back of strategies, reviews, and labels) and go-live.
+        <span id="mode-text">Production runs — data written to Jira.</span>
     </div>
 </div>
 
-<div class="nav-tabs">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+<div class="nav-tabs" style="margin-bottom:0">
     <div class="nav-tab active" onclick="switchPage('executive')">Executive Summary</div>
     <div class="nav-tab" onclick="switchPage('overview')">Per-Run Trends</div>
     <div class="nav-tab" onclick="switchPage('run-detail')">Run Detail</div>
     <div class="nav-tab" onclick="switchPage('pipeline')">Pipeline</div>
+</div>
+<label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:#8b949e;padding:8px 16px;background:#161b22;border:1px solid #30363d;border-radius:6px;user-select:none;white-space:nowrap">
+    <input type="checkbox" id="include-dry-runs" onchange="toggleDryRuns()" style="accent-color:#58a6ff;cursor:pointer">
+    Include dry runs
+</label>
 </div>
 
 <!-- ═══ EXECUTIVE SUMMARY PAGE ═══ -->
@@ -1111,8 +1116,85 @@ graph LR
 </div>
 
 <script>
-const RUNS = {runs_json};
-const EXEC = {exec_json};
+const ALL_RUNS = {runs_json};
+let RUNS = ALL_RUNS.filter(r => !r.dry_run);
+let EXEC = recomputeExec(RUNS);
+
+// ─── Dry-run filtering ─────────────────────────────────────────────────────
+function recomputeExec(runs) {{
+    const seen = {{}};
+    for (let i = runs.length - 1; i >= 0; i--) {{
+        const run = runs[i];
+        for (const s of run.strategies) {{
+            if (!seen[s.strat_id]) {{
+                seen[s.strat_id] = {{...s, run_id: run.run_id, run_label: run.label}};
+            }}
+        }}
+    }}
+    const strategies = Object.values(seen).sort((a, b) => a.strat_id.localeCompare(b.strat_id));
+    const total = strategies.length;
+    const isApprove = v => ['approve','approved'].includes(v);
+    const isRevise = v => ['revise','needs revision','needs_revision'].includes(v);
+    const isReject = v => ['reject','rejected','infeasible'].includes(v);
+    const isSplit = v => v === 'split';
+    const reviewed = strategies.filter(s => s.recommendation && s.recommendation !== '—' && s.recommendation !== '');
+    const totalReviewed = reviewed.length;
+    const approved = reviewed.filter(s => isApprove(s.recommendation)).length;
+    const revise = reviewed.filter(s => isRevise(s.recommendation)).length;
+    const reject = reviewed.filter(s => isReject(s.recommendation)).length;
+    const split = reviewed.filter(s => isSplit(s.recommendation)).length;
+    const needsAttention = reviewed.filter(s => s.needs_attention).length;
+    const pct = (n, t) => t > 0 ? Math.round(100 * n / t) : 0;
+    const dims = ['feasibility','testability','scope','architecture'];
+    const dimensions = {{}};
+    dims.forEach(dim => {{
+        const vals = strategies.filter(s => s.scores && s.scores[dim] != null).map(s => s.scores[dim]);
+        const dt = vals.length;
+        const dp = vals.filter(v => v === 2).length;
+        const dpart = vals.filter(v => v === 1).length;
+        const df = vals.filter(v => v === 0).length;
+        const dsum = vals.reduce((a, b) => a + b, 0);
+        dimensions[dim] = {{total: dt, pass: dp, partial: dpart, fail: df, rate: pct(dsum, dt * 2)}};
+    }});
+    const scored = strategies.filter(s => s.scores && s.scores.total != null);
+    const avgScore = scored.length > 0 ? Math.round(10 * scored.reduce((a, s) => a + s.scores.total, 0) / scored.length) / 10 : null;
+    const skippedSeen = {{}};
+    for (let i = runs.length - 1; i >= 0; i--) {{
+        for (const s of (runs[i].skipped || [])) {{
+            if (s.rfe_key && !skippedSeen[s.rfe_key]) skippedSeen[s.rfe_key] = s;
+        }}
+    }}
+    const skipped = Object.values(skippedSeen).sort((a, b) => (a.rfe_key || '').localeCompare(b.rfe_key || ''));
+    const rfeKeys = new Set();
+    strategies.forEach(s => {{ if (s.source_rfe) rfeKeys.add(s.source_rfe); }});
+    skipped.forEach(s => {{ if (s.rfe_key) rfeKeys.add(s.rfe_key); }});
+    return {{
+        total, total_rfes: rfeKeys.size, total_runs: runs.length,
+        reviewed: totalReviewed, approved, revise, reject, split,
+        needs_attention: needsAttention,
+        approval_rate: pct(approved, totalReviewed),
+        revision_rate: pct(revise, totalReviewed),
+        avg_total_score: avgScore, dimensions, strategies, skipped,
+        weakest_dim: total > 0 ? dims.reduce((a, b) => dimensions[a].rate < dimensions[b].rate ? a : b) : '—',
+        strongest_dim: total > 0 ? dims.reduce((a, b) => dimensions[a].rate > dimensions[b].rate ? a : b) : '—',
+    }};
+}}
+
+function toggleDryRuns() {{
+    const checked = document.getElementById('include-dry-runs').checked;
+    RUNS = checked ? [...ALL_RUNS] : ALL_RUNS.filter(r => !r.dry_run);
+    EXEC = recomputeExec(RUNS);
+    const modeEl = document.getElementById('mode-text');
+    if (modeEl) {{
+        modeEl.innerHTML = checked
+            ? 'Showing <strong style="color:#c9d1d9">all runs</strong> including dry runs — dry runs do not write to Jira.'
+            : 'Production runs — data written to Jira.';
+    }}
+    renderExecutiveSummary();
+    buildRunList();
+    buildRunSelector();
+    initCharts();
+}}
 
 // ─── Page switching ──────────────────────────────────────────────────────────
 function switchPage(page) {{
@@ -1383,8 +1465,11 @@ function buildRunList() {{
         const rate = r.approval_rate;
         const color = rate >= 70 ? '#3fb950' : rate >= 40 ? '#d29922' : '#f85149';
         const bg = rate >= 70 ? '#23302a' : rate >= 40 ? '#2d2400' : '#2d1418';
+        const modeBadge = r.dry_run
+            ? '<span style="background:#1f3a5f;color:#58a6ff;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;margin-left:6px">DRY</span>'
+            : '<span style="background:#23302a;color:#3fb950;padding:2px 6px;border-radius:3px;font-size:10px;font-weight:600;margin-left:6px">PROD</span>';
         html += `<div class="run-item" onclick="showRunDetail(${{i}})">
-            <div class="run-date">${{r.label}}</div>
+            <div class="run-date">${{r.label}}${{modeBadge}}</div>
             ${{r.is_current ? '<div class="run-current">current</div>' : ''}}
             <div class="run-count">${{r.reviewed}} strategies</div>
             <div class="run-badge" style="background:${{bg}};color:${{color}}">${{rate}}% approved</div>
@@ -1400,7 +1485,8 @@ function buildRunSelector() {{
         const r = RUNS[i];
         const opt = document.createElement('option');
         opt.value = i;
-        opt.textContent = `${{r.label}} — ${{r.approval_rate}}% approved (${{r.reviewed}} strategies)${{r.is_current ? ' [current]' : ''}}`;
+        const modeTag = r.dry_run ? '[DRY]' : '[PROD]';
+        opt.textContent = `${{r.label}} ${{modeTag}} — ${{r.approval_rate}}% approved (${{r.reviewed}} strategies)${{r.is_current ? ' [current]' : ''}}`;
         sel.appendChild(opt);
     }}
     if (RUNS.length > 0) {{
@@ -1662,11 +1748,14 @@ function switchRunTab(runIdx, stratIdx, tab) {{
 Chart.defaults.color = '#8b949e';
 Chart.defaults.borderColor = '#21262d';
 
+let _chartInstances = [];
 function initCharts() {{
+    _chartInstances.forEach(c => c.destroy());
+    _chartInstances = [];
     const labels = RUNS.map(r => r.label);
 
     // Approval rate trend
-    new Chart(document.getElementById('chart-approval'), {{
+    _chartInstances.push(new Chart(document.getElementById('chart-approval'), {{
         type: 'line',
         data: {{
             labels,
@@ -1698,10 +1787,10 @@ function initCharts() {{
                 }},
             }},
         }},
-    }});
+    }}));
 
     // Strategies per run
-    new Chart(document.getElementById('chart-volume'), {{
+    _chartInstances.push(new Chart(document.getElementById('chart-volume'), {{
         type: 'bar',
         data: {{
             labels,
@@ -1737,7 +1826,7 @@ function initCharts() {{
                 y: {{ stacked: true, grid: {{ color: '#161b22' }}, ticks: {{ stepSize: 1 }} }},
             }},
         }},
-    }});
+    }}));
 
     // Dimension trends
     const dimColors = {{
@@ -1746,7 +1835,7 @@ function initCharts() {{
         scope: '#3fb950',
         architecture: '#f78166',
     }};
-    new Chart(document.getElementById('chart-dimensions'), {{
+    _chartInstances.push(new Chart(document.getElementById('chart-dimensions'), {{
         type: 'line',
         data: {{
             labels,
@@ -1775,10 +1864,10 @@ function initCharts() {{
                 x: {{ grid: {{ display: false }} }},
             }},
         }},
-    }});
+    }}));
 
     // First-pass quality score
-    new Chart(document.getElementById('chart-quality'), {{
+    _chartInstances.push(new Chart(document.getElementById('chart-quality'), {{
         type: 'line',
         data: {{
             labels,
@@ -1808,10 +1897,10 @@ function initCharts() {{
                 x: {{ grid: {{ display: false }} }},
             }},
         }},
-    }});
+    }}));
 
     // Average score trend
-    new Chart(document.getElementById('chart-avg-score'), {{
+    _chartInstances.push(new Chart(document.getElementById('chart-avg-score'), {{
         type: 'line',
         data: {{
             labels,
@@ -1860,7 +1949,7 @@ function initCharts() {{
                 x: {{ grid: {{ display: false }} }},
             }},
         }},
-    }});
+    }}));
 }}
 
 // ─── Diagram zoom/pan ────────────────────────────────────────────────────────
