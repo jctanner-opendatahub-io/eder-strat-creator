@@ -1,6 +1,7 @@
 ---
 name: export-rubric
 description: Export the assess-strat scoring rubric to artifacts/strat-rubric.md in the current working directory.
+user-invocable: true
 allowed-tools: Read, Write, Bash
 ---
 
