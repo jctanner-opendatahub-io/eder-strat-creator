@@ -796,7 +796,9 @@ graph LR
             GATE -->|"Fail"| SKIP["Skipped RFEs\\nstrat-skipped.md"]
             GATE -->|"Pass"| E1["Fetch RFE\\nfrom Jira"]
             E1 --> E2["Check existing\\nSTRATs via Cloners"]
-            E2 --> E3["Clone RFE to\\nRHAISTRAT in Jira"]
+            E2 --> EG{{{{"Pipeline label gate\\nSkip if rubric-pass\\nor needs-attention"}}}}
+            EG -->|"Fail"| ESKIP["Skipped STRATs"]
+            EG -->|"Pass"| E3["Clone or import\\nRHAISTRAT from Jira"]
             E3 --> E4["Save originals\\n& fetch comments"]
             E4 --> E5["Create strategy\\nstubs"]
             E5 --> E6["Add label\\nstrat-creator-auto-created"]
@@ -831,7 +833,7 @@ graph LR
             CON --> JIRA["Attach review to Jira\\n& post summary\\nas comment"]
             JIRA --> Q{{{{&#8805;6/8\\nno zeros?}}}}
             Q -->|"APPROVE"| LA["Add label\\nstrat-creator-rubric-pass"]
-            Q -->|"REVISE / SPLIT / REJECT"| LR["Add label\\nstrat-creator-needs-attention"]
+            Q -->|"REVISE / REJECT"| LR["Add label\\nstrat-creator-needs-attention"]
         end
 
         LA --> PA{{"AI Strategy HOW\\nReady\\n(optional &#128100; review)"}}
@@ -858,6 +860,8 @@ graph LR
     style D fill:#2d6a2d,color:#fff
     style GATE fill:#1f3a5f,color:#58a6ff,stroke:#58a6ff
     style SKIP fill:#3d1f00,color:#d29922,stroke:#d29922
+    style EG fill:#1f3a5f,color:#58a6ff,stroke:#58a6ff
+    style ESKIP fill:#3d1f00,color:#d29922,stroke:#d29922
     style E0 fill:#2d6a2d,color:#fff
     style E6 fill:#6e40c9,color:#fff
     style E1 fill:#c77d1a,color:#fff
