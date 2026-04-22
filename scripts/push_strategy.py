@@ -15,6 +15,7 @@ Environment variables:
 """
 
 import argparse
+import os
 import re
 import sys
 
@@ -85,6 +86,15 @@ def main():
                       fields=["description"])
     existing_desc = issue.get("fields", {}).get("description")
     existing_md = adf_to_markdown(existing_desc).strip() if existing_desc else ""
+
+    if existing_md:
+        backup_dir = os.path.join(os.path.dirname(args.local_file), "..", "strat-originals")
+        os.makedirs(backup_dir, exist_ok=True)
+        backup_path = os.path.join(backup_dir, f"{args.issue_key}-pre-push.md")
+        if not os.path.exists(backup_path):
+            with open(backup_path, "w", encoding="utf-8") as f:
+                f.write(existing_md)
+            print(f"Backed up existing description to {backup_path}", file=sys.stderr)
 
     if STRATEGY_HEADING in existing_md:
         updated_md = re.sub(
